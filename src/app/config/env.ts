@@ -1,0 +1,21 @@
+// ============================================================================
+// Configuración centralizada del sistema - Lee variables de entorno VITE_
+// ============================================================================
+
+export const config = {
+  // --- API ---
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8080/api/v1/core',
+
+  // --- Aplicación ---
+  appName: import.meta.env.VITE_APP_NAME || 'BanQuito',
+  appSubtitle: import.meta.env.VITE_APP_SUBTITLE || 'Core Bancario',
+
+  // --- Autenticación ---
+  mockAuthEnabled: import.meta.env.VITE_MOCK_AUTH_ENABLED === 'true',
+  defaultAdminUser: import.meta.env.VITE_DEFAULT_ADMIN_USER || 'admin',
+
+  // --- Entorno ---
+  environment: import.meta.env.VITE_ENVIRONMENT || 'development',
+  isDevelopment: import.meta.env.DEV,
+  isProduction: import.meta.env.PROD,
+} as const;
