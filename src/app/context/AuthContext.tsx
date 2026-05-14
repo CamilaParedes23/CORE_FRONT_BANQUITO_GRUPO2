@@ -41,22 +41,33 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
   const login = async (usuario: string, password: string) => {
     if (config.mockAuthEnabled) {
-      // Autenticación mock - controlada por VITE_MOCK_AUTH_ENABLED
+      // Usuarios mock para probar todos los roles
+      const MOCK_USERS: Record<string, { nombreCompleto: string; rol: UserRole; sucursal: { id: string; nombre: string } }> = {
+        admin:      { nombreCompleto: 'Administrador Core',        rol: 'ADMIN_CORE',          sucursal: { id: 'SUC-001', nombre: 'Matriz Quito' } },
+        cajero:     { nombreCompleto: 'Carlos Mejía (Cajero)',     rol: 'CAJERO',              sucursal: { id: 'SUC-001', nombre: 'Matriz Quito' } },
+        operador:   { nombreCompleto: 'Laura Vega (Operador)',     rol: 'OPERADOR',            sucursal: { id: 'SUC-002', nombre: 'Sucursal Norte' } },
+        supervisor: { nombreCompleto: 'Marco Torres (Supervisor)', rol: 'SUPERVISOR_AGENCIA',  sucursal: { id: 'SUC-002', nombre: 'Sucursal Norte' } },
+        auditor:    { nombreCompleto: 'Diana Ruiz (Auditor)',      rol: 'AUDITOR',             sucursal: { id: 'SUC-001', nombre: 'Matriz Quito' } },
+      };
+
+      const key = usuario.toLowerCase().trim();
+      const mockData = MOCK_USERS[key];
+
+      if (!mockData) {
+        throw new Error(`Usuario no reconocido en modo demo. Use: ${Object.keys(MOCK_USERS).join(', ')}`);
+      }
+
       const mockToken = `jwt_mock_${Date.now()}`;
       const mockUser: User = {
-        id: '1',
-        nombreCompleto: 'Juan Pérez López',
-        usuario: usuario,
-        rol: usuario === config.defaultAdminUser ? 'ADMIN_CORE' : 'OPERADOR',
-        sucursal: {
-          id: 'SUC-001',
-          nombre: 'Matriz Quito'
-        }
+        id: String(Object.keys(MOCK_USERS).indexOf(key) + 1),
+        nombreCompleto: mockData.nombreCompleto,
+        usuario: key,
+        rol: mockData.rol,
+        sucursal: mockData.sucursal,
       };
 
       localStorage.setItem('banquito_token', mockToken);
       localStorage.setItem('banquito_user', JSON.stringify(mockUser));
-
       setToken(mockToken);
       setUser(mockUser);
     } else {

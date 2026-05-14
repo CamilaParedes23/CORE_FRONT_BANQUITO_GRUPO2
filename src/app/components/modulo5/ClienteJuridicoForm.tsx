@@ -2,11 +2,21 @@ import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { config } from '../../config/env';
+import { ClienteService } from '../../services/clienteService';
+import type { ClienteRequest } from '../../services/clienteService';
 
 interface ClienteJuridicoFormProps {
   navigate: (screen: string, id?: string) => void;
 }
+
+// Subtipo IDs del backend (SUBTIPO_CLIENTE table):
+// 3 = JUR_PYME       (JURIDICO - PYME / Gobierno)
+// 4 = JUR_CORPORATIVO (JURIDICO - Corporativo)
+const SUBTIPO_MAP: Record<string, number> = {
+  PYME: 3,
+  GOBIERNO: 3,
+  CORPORATIVO: 4,
+};
 
 export default function ClienteJuridicoForm({ navigate }: ClienteJuridicoFormProps) {
   const [formData, setFormData] = useState({
@@ -16,9 +26,90 @@ export default function ClienteJuridicoForm({ navigate }: ClienteJuridicoFormPro
     correo: '',
     telefono: '',
     direccion: '',
-    representanteLegal: '',
-    segmento: 'PYME'
+    segmento: 'PYME',
   });
+
+  const [guardando, setGuardando] = useState(false);
+  const [errores, setErrores] = useState<Record<string, string>>({});
+  const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
+
+  // ── Validaciones ──────────────────────────────────────────────────────────
+
+  const validar = (): boolean => {
+    const nuevosErrores: Record<string, string> = {};
+
+    if (!formData.ruc.trim()) {
+      nuevosErrores.ruc = 'El RUC es obligatorio.';
+    } else if (!/^\d{13}$/.test(formData.ruc.trim())) {
+      nuevosErrores.ruc = 'El RUC debe tener exactamente 13 dígitos numéricos.';
+    }
+
+    if (!formData.razonSocial.trim()) {
+      nuevosErrores.razonSocial = 'La razón social es obligatoria.';
+    }
+    if (!formData.correo.trim()) {
+      nuevosErrores.correo = 'El correo corporativo es obligatorio.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.correo.trim())) {
+      nuevosErrores.correo = 'Ingrese un correo electrónico válido.';
+    }
+    if (!formData.telefono.trim()) {
+      nuevosErrores.telefono = 'El teléfono es obligatorio.';
+    }
+    if (!formData.direccion.trim()) {
+      nuevosErrores.direccion = 'La dirección es obligatoria.';
+    }
+
+    setErrores(nuevosErrores);
+    return Object.keys(nuevosErrores).length === 0;
+  };
+
+  // ── Submit ────────────────────────────────────────────────────────────────
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorGeneral(null);
+
+    if (!validar()) return;
+
+    const request: ClienteRequest = {
+      subtipoClienteId: SUBTIPO_MAP[formData.segmento] ?? 3,
+      tipoCliente: 'JURIDICO',
+      tipoIdentificacion: 'RUC',
+      identificacion: formData.ruc.trim(),
+      razonSocial: formData.razonSocial.trim(),
+      fechaConstitucion: formData.fechaConstitucion || undefined,
+      email: formData.correo.trim(),
+      telefonoMovil: formData.telefono.trim(),
+      direccion: formData.direccion.trim(),
+      activoPagosMasivos: false,
+    };
+
+    setGuardando(true);
+    try {
+      const clienteCreado = await ClienteService.crear(request);
+      navigate('cliente-ficha', String(clienteCreado.id));
+    } catch (err: any) {
+      setErrorGeneral(
+        err?.statusText || err?.message || 'No se pudo crear el cliente jurídico. Verifique los datos e intente de nuevo.'
+      );
+    } finally {
+      setGuardando(false);
+    }
+  };
+
+  // ── Render ────────────────────────────────────────────────────────────────
+
+  const campo = (
+    key: keyof typeof errores,
+    children: React.ReactNode
+  ) => (
+    <div>
+      {children}
+      {errores[key] && (
+        <p className="text-xs text-red-600 mt-1">{errores[key]}</p>
+      )}
+    </div>
+  );
 
   return (
     <div className="p-8 bg-[#F5F7FA] min-h-full">
@@ -32,17 +123,37 @@ export default function ClienteJuridicoForm({ navigate }: ClienteJuridicoFormPro
           <CardTitle className="text-[#0D1B4B]">Datos de la Empresa</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={(e) => { e.preventDefault(); navigate('clientes'); }} className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>RUC *</Label>
-                <Input
-                  value={formData.ruc}
-                  onChange={(e) => setFormData({ ...formData, ruc: e.target.value })}
-                  placeholder="1234567890001"
-                  className="mt-2"
-                />
+          <form onSubmit={handleSubmit} className="space-y-4">
+
+            {errorGeneral && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+                ⚠️ {errorGeneral}
               </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              {campo('ruc',
+                <>
+                  <Label>
+                    RUC *
+                    <span className="ml-1 text-xs text-gray-500">(exactamente 13 dígitos)</span>
+                  </Label>
+                  <Input
+                    value={formData.ruc}
+                    onChange={(e) => {
+                      const val = e.target.value.replace(/\D/g, '').slice(0, 13);
+                      setFormData({ ...formData, ruc: val });
+                      setErrores((prev) => ({ ...prev, ruc: '' }));
+                    }}
+                    placeholder="1234567890001"
+                    maxLength={13}
+                    className={`mt-2 ${errores.ruc ? 'border-red-400' : ''}`}
+                  />
+                  {formData.ruc.length > 0 && (
+                    <p className="text-xs text-gray-400 mt-1">{formData.ruc.length}/13 dígitos</p>
+                  )}
+                </>
+              )}
               <div>
                 <Label>Fecha de Constitución</Label>
                 <Input
@@ -54,54 +165,64 @@ export default function ClienteJuridicoForm({ navigate }: ClienteJuridicoFormPro
               </div>
             </div>
 
-            <div>
-              <Label>Razón Social *</Label>
-              <Input
-                value={formData.razonSocial}
-                onChange={(e) => setFormData({ ...formData, razonSocial: e.target.value })}
-                placeholder="Empresa XYZ S.A."
-                className="mt-2"
-              />
-            </div>
-
-            <div>
-              <Label>Representante Legal (Cédula)</Label>
-              <Input
-                value={formData.representanteLegal}
-                onChange={(e) => setFormData({ ...formData, representanteLegal: e.target.value })}
-                placeholder="Buscar cliente natural existente..."
-                className="mt-2"
-              />
-            </div>
+            {campo('razonSocial',
+              <>
+                <Label>Razón Social *</Label>
+                <Input
+                  value={formData.razonSocial}
+                  onChange={(e) => {
+                    setFormData({ ...formData, razonSocial: e.target.value });
+                    setErrores((prev) => ({ ...prev, razonSocial: '' }));
+                  }}
+                  placeholder="Empresa XYZ S.A."
+                  className={`mt-2 ${errores.razonSocial ? 'border-red-400' : ''}`}
+                />
+              </>
+            )}
 
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <Label>Correo Corporativo *</Label>
-                <Input
-                  type="email"
-                  value={formData.correo}
-                  onChange={(e) => setFormData({ ...formData, correo: e.target.value })}
-                  className="mt-2"
-                />
-              </div>
-              <div>
-                <Label>Teléfono</Label>
-                <Input
-                  value={formData.telefono}
-                  onChange={(e) => setFormData({ ...formData, telefono: e.target.value })}
-                  className="mt-2"
-                />
-              </div>
+              {campo('correo',
+                <>
+                  <Label>Correo Corporativo *</Label>
+                  <Input
+                    type="email"
+                    value={formData.correo}
+                    onChange={(e) => {
+                      setFormData({ ...formData, correo: e.target.value });
+                      setErrores((prev) => ({ ...prev, correo: '' }));
+                    }}
+                    className={`mt-2 ${errores.correo ? 'border-red-400' : ''}`}
+                  />
+                </>
+              )}
+              {campo('telefono',
+                <>
+                  <Label>Teléfono *</Label>
+                  <Input
+                    value={formData.telefono}
+                    onChange={(e) => {
+                      setFormData({ ...formData, telefono: e.target.value });
+                      setErrores((prev) => ({ ...prev, telefono: '' }));
+                    }}
+                    className={`mt-2 ${errores.telefono ? 'border-red-400' : ''}`}
+                  />
+                </>
+              )}
             </div>
 
-            <div>
-              <Label>Dirección</Label>
-              <Input
-                value={formData.direccion}
-                onChange={(e) => setFormData({ ...formData, direccion: e.target.value })}
-                className="mt-2"
-              />
-            </div>
+            {campo('direccion',
+              <>
+                <Label>Dirección *</Label>
+                <Input
+                  value={formData.direccion}
+                  onChange={(e) => {
+                    setFormData({ ...formData, direccion: e.target.value });
+                    setErrores((prev) => ({ ...prev, direccion: '' }));
+                  }}
+                  className={`mt-2 ${errores.direccion ? 'border-red-400' : ''}`}
+                />
+              </>
+            )}
 
             <div>
               <Label>Segmento</Label>
@@ -120,25 +241,22 @@ export default function ClienteJuridicoForm({ navigate }: ClienteJuridicoFormPro
               <button
                 type="button"
                 onClick={() => navigate('clientes')}
-                className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400"
+                disabled={guardando}
+                className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 disabled:opacity-50"
               >
                 Cancelar
               </button>
               <button
                 type="submit"
-                className="px-6 py-2 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b]"
+                disabled={guardando}
+                className="px-6 py-2 bg-[#C9A84C] text-[#0D1B4B] rounded-lg hover:bg-[#b89640] disabled:opacity-50 font-medium"
               >
-                Crear Cliente
+                {guardando ? 'Guardando...' : 'Crear Cliente Jurídico'}
               </button>
             </div>
           </form>
         </CardContent>
       </Card>
-
-      <div className="mt-6 max-w-4xl p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <p className="text-sm text-blue-700 font-medium">Endpoint API:</p>
-        <p className="text-xs text-blue-600 mt-1">POST {config.apiBaseUrl}/clientes/juridicos</p>
-      </div>
     </div>
   );
 }

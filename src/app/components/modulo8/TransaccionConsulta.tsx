@@ -4,7 +4,8 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Badge } from '../ui/badge';
 import { Search } from 'lucide-react';
-import { config } from '../../config/env';
+import { TransaccionService } from '../../services/transaccionService';
+import type { MovimientoCuentaResponse } from '../../services/transaccionService';
 
 interface TransaccionConsultaProps {
   navigate: (screen: string) => void;
@@ -12,20 +13,28 @@ interface TransaccionConsultaProps {
 
 export default function TransaccionConsulta({ navigate }: TransaccionConsultaProps) {
   const [uuid, setUuid] = useState('');
-  const [resultado, setResultado] = useState<any>(null);
+  const [buscando, setBuscando] = useState(false);
+  const [resultado, setResultado] = useState<MovimientoCuentaResponse | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleBuscar = () => {
-    setResultado({
-      uuid: 'TXN-123456-2026',
-      tipo: 'CREDITO',
-      monto: '$500.00',
-      cuenta: '1001234567',
-      estado: 'EXITOSA',
-      canal: 'CORE',
-      fecha: '2026-05-01 14:25:30',
-      saldoResultante: '$5,740.50',
-      descripcion: 'Depósito en efectivo'
-    });
+  const handleBuscar = async () => {
+    if (!uuid.trim()) return;
+    setBuscando(true);
+    setError(null);
+    setResultado(null);
+
+    try {
+      const txn = await TransaccionService.consultarPorUuid(uuid.trim());
+      setResultado(txn);
+    } catch (err: any) {
+      if (err?.status === 404) {
+        setError('No se encontró una transacción con ese UUID.');
+      } else {
+        setError(err?.message || 'Error al consultar la transacción.');
+      }
+    } finally {
+      setBuscando(false);
+    }
   };
 
   return (
@@ -48,18 +57,29 @@ export default function TransaccionConsulta({ navigate }: TransaccionConsultaPro
               <Label>UUID de Transacción</Label>
               <Input
                 value={uuid}
-                onChange={(e) => setUuid(e.target.value)}
-                placeholder="Ej: TXN-123456-2026"
-                className="mt-2"
+                onChange={(e) => {
+                  setUuid(e.target.value);
+                  setError(null);
+                  setResultado(null);
+                }}
+                placeholder="Ej: 550e8400-e29b-41d4-a716-446655440000"
+                className="mt-2 font-mono text-sm"
+                onKeyDown={(e) => e.key === 'Enter' && handleBuscar()}
               />
             </div>
 
+            {error && (
+              <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+                ⚠️ {error}
+              </div>
+            )}
+
             <button
               onClick={handleBuscar}
-              disabled={!uuid}
+              disabled={!uuid.trim() || buscando}
               className="w-full py-3 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b] disabled:opacity-50"
             >
-              Buscar Transacción
+              {buscando ? 'Buscando...' : 'Buscar Transacción'}
             </button>
 
             {resultado && (
@@ -67,44 +87,42 @@ export default function TransaccionConsulta({ navigate }: TransaccionConsultaPro
                 <CardHeader>
                   <div className="flex items-center justify-between">
                     <CardTitle className="text-lg text-[#0D1B4B]">Transacción Encontrada</CardTitle>
-                    <Badge className="bg-green-600">{resultado.estado}</Badge>
+                    <Badge
+                      className={resultado.tipoMovimiento === 'DEBITO'
+                        ? 'bg-red-600'
+                        : 'bg-green-600'}
+                    >
+                      {resultado.tipoMovimiento}
+                    </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">UUID</p>
-                      <p className="font-medium">{resultado.uuid}</p>
+                      <p className="text-sm text-gray-600 mb-1">UUID Transacción</p>
+                      <p className="font-mono text-xs break-all">{resultado.uuidTransaccion}</p>
                     </div>
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">Tipo</p>
-                      <p className={`font-medium ${resultado.tipo === 'DEBITO' ? 'text-red-600' : 'text-green-600'}`}>
-                        {resultado.tipo}
+                      <p className="text-sm text-gray-600 mb-1">Tipo Movimiento</p>
+                      <p className={`font-medium ${resultado.tipoMovimiento === 'DEBITO' ? 'text-red-600' : 'text-green-600'}`}>
+                        {resultado.tipoMovimiento}
                       </p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600 mb-1">Monto</p>
-                      <p className="font-medium text-xl">{resultado.monto}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Cuenta</p>
-                      <p className="font-medium">{resultado.cuenta}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Canal</p>
-                      <p className="font-medium">{resultado.canal}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Fecha</p>
-                      <p className="font-medium">{resultado.fecha}</p>
+                      <p className="font-medium text-xl">${Number(resultado.monto).toFixed(2)}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600 mb-1">Saldo Resultante</p>
-                      <p className="font-medium">{resultado.saldoResultante}</p>
+                      <p className="font-medium">${Number(resultado.saldoResultante).toFixed(2)}</p>
+                    </div>
+                    <div>
+                      <p className="text-sm text-gray-600 mb-1">Fecha</p>
+                      <p className="font-medium">{resultado.fechaTransaccion}</p>
                     </div>
                     <div className="col-span-2">
                       <p className="text-sm text-gray-600 mb-1">Descripción</p>
-                      <p className="font-medium">{resultado.descripcion}</p>
+                      <p className="font-medium">{resultado.descripcion || '—'}</p>
                     </div>
                   </div>
                 </CardContent>
@@ -113,11 +131,6 @@ export default function TransaccionConsulta({ navigate }: TransaccionConsultaPro
           </div>
         </CardContent>
       </Card>
-
-      <div className="mt-6 max-w-4xl p-4 bg-blue-50 border border-blue-200 rounded-lg">
-        <p className="text-sm text-blue-700 font-medium">Endpoint API:</p>
-        <p className="text-xs text-blue-600 mt-1">GET {config.apiBaseUrl}/transacciones/{uuid}</p>
-      </div>
     </div>
   );
 }

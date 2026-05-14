@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import { ClienteService } from '../../services/clienteService';
 import { CuentaService } from '../../services/cuentaService';
 import type { ClienteResponse } from '../../services/clienteService';
@@ -17,6 +18,16 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
   const [cuentas, setCuentas] = useState<CuentaResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  // Estados para los modales
+  const [showConfirmStateChange, setShowConfirmStateChange] = useState(false);
+  const [nuevoEstadoSeleccionado, setNuevoEstadoSeleccionado] = useState('');
+  const [showInfoDialog, setShowInfoDialog] = useState(false);
+  const [infoMessage, setInfoMessage] = useState('');
+  const [infoTitle, setInfoTitle] = useState('');
+
+  // Buscador de cuentas
+  const [busquedaCuenta, setBusquedaCuenta] = useState('');
 
   useEffect(() => {
     if (!clienteId) return;
@@ -37,6 +48,37 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
       .catch(err => setError(err.message || 'Error al cargar datos del cliente'))
       .finally(() => setLoading(false));
   }, [clienteId]);
+
+  const handleCambiarEstadoClick = () => {
+    if (!cliente) return;
+    // Pre-seleccionar el estado "opuesto" al actual
+    const opciones = ['ACTIVO', 'INACTIVO', 'SUSPENDIDO'];
+    const siguiente = opciones.find(e => e !== cliente.estado) || 'INACTIVO';
+    setNuevoEstadoSeleccionado(siguiente);
+    setShowConfirmStateChange(true);
+  };
+
+  const confirmarCambioEstado = async () => {
+    if (!cliente || !nuevoEstadoSeleccionado) return;
+    setShowConfirmStateChange(false);
+    try {
+      const response = await ClienteService.cambiarEstado(cliente.id, nuevoEstadoSeleccionado);
+      setCliente({ ...cliente, estado: response.estado || nuevoEstadoSeleccionado });
+      setInfoTitle('Éxito');
+      setInfoMessage(`Estado actualizado a ${nuevoEstadoSeleccionado}`);
+      setShowInfoDialog(true);
+    } catch (err: any) {
+      setInfoTitle('Error');
+      setInfoMessage(err.message || 'Error al cambiar el estado en el servidor');
+      setShowInfoDialog(true);
+    }
+  };
+
+  const handleEditarDatos = () => {
+    setInfoTitle('Información');
+    setInfoMessage('La edición de datos generales no está implementada en el backend actual.');
+    setShowInfoDialog(true);
+  };
 
   if (loading) {
     return (
@@ -74,7 +116,9 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-2xl text-[#0D1B4B]">{cliente.nombreVisual}</CardTitle>
-              <p className="text-gray-600 mt-1">ID: {cliente.identificacion}</p>
+              <p className="text-gray-600 mt-1">
+                {cliente.tipoCliente === 'NATURAL' ? 'C.I' : 'RUC'}: {cliente.identificacion}
+              </p>
             </div>
             <div className="flex gap-3">
               <Badge variant="outline">{cliente.tipoCliente}</Badge>
@@ -126,10 +170,10 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
                 </div>
               </div>
               <div className="flex gap-4 mt-6">
-                <button className="px-6 py-2 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b]">
+                <button type="button" onClick={handleEditarDatos} className="px-6 py-2 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b]">
                   Editar Datos
                 </button>
-                <button className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700">
+                <button type="button" onClick={handleCambiarEstadoClick} className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700">
                   Cambiar Estado
                 </button>
               </div>
@@ -149,55 +193,133 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
                   Nueva Cuenta
                 </button>
               </div>
+              <div className="mt-3">
+                <input
+                  type="text"
+                  value={busquedaCuenta}
+                  onChange={(e) => setBusquedaCuenta(e.target.value)}
+                  placeholder="Buscar por número de cuenta..."
+                  className="w-full sm:w-72 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0D1B4B]/40"
+                />
+              </div>
             </CardHeader>
             <CardContent>
-              {cuentas.length === 0 ? (
-                <p className="text-gray-500 py-4">Este cliente no tiene cuentas registradas</p>
-              ) : (
-                <div className="overflow-x-auto">
-                  <table className="w-full">
-                    <thead>
-                      <tr className="border-b">
-                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Número</th>
-                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Estado</th>
-                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Saldo Contable</th>
-                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Saldo Disponible</th>
-                        <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Acciones</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {cuentas.map((cuenta) => (
-                        <tr key={cuenta.numeroCuenta} className="border-b hover:bg-gray-50">
-                          <td className="py-3 px-4 text-sm font-medium">{cuenta.numeroCuenta}</td>
-                          <td className="py-3 px-4 text-sm">
-                            <Badge className={String(cuenta.estado) === 'ACTIVA' ? 'bg-green-600' : 'bg-orange-600'}>
-                              {String(cuenta.estado)}
-                            </Badge>
-                          </td>
-                          <td className="py-3 px-4 text-sm font-medium">
-                            ${Number(cuenta.saldoContable).toFixed(2)}
-                          </td>
-                          <td className="py-3 px-4 text-sm font-medium">
-                            ${Number(cuenta.saldoDisponible).toFixed(2)}
-                          </td>
-                          <td className="py-3 px-4 text-sm">
-                            <button
-                              onClick={() => navigate('cuenta-ficha', cuenta.numeroCuenta)}
-                              className="text-[#0D1B4B] hover:underline"
-                            >
-                              Ver detalle
-                            </button>
-                          </td>
+              {(() => {
+                const cuentasFiltradas = cuentas.filter(c =>
+                  busquedaCuenta.trim() === '' || c.numeroCuenta.includes(busquedaCuenta.trim())
+                );
+                return cuentasFiltradas.length === 0 ? (
+                  <p className="text-gray-500 py-4">
+                    {cuentas.length === 0 ? 'Este cliente no tiene cuentas registradas' : 'No se encontraron cuentas con ese número'}
+                  </p>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full">
+                      <thead>
+                        <tr className="border-b">
+                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Número</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Estado</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Saldo Contable</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Saldo Disponible</th>
+                          <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Acciones</th>
                         </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-              )}
+                      </thead>
+                      <tbody>
+                        {cuentasFiltradas.map((cuenta) => (
+                          <tr key={cuenta.numeroCuenta} className="border-b hover:bg-gray-50">
+                            <td className="py-3 px-4 text-sm font-medium">{cuenta.numeroCuenta}</td>
+                            <td className="py-3 px-4 text-sm">
+                              <Badge className={String(cuenta.estado) === 'ACTIVA' ? 'bg-green-600' : 'bg-orange-600'}>
+                                {String(cuenta.estado)}
+                              </Badge>
+                            </td>
+                            <td className="py-3 px-4 text-sm font-medium">
+                              ${Number(cuenta.saldoContable).toFixed(2)}
+                            </td>
+                            <td className="py-3 px-4 text-sm font-medium">
+                              ${Number(cuenta.saldoDisponible).toFixed(2)}
+                            </td>
+                            <td className="py-3 px-4 text-sm">
+                              <button
+                                onClick={() => navigate('cuenta-ficha', cuenta.numeroCuenta)}
+                                className="text-[#0D1B4B] hover:underline"
+                              >
+                                Ver detalle
+                              </button>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                );
+              })()}
             </CardContent>
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Diálogo de Cambiar Estado */}
+      <Dialog open={showConfirmStateChange} onOpenChange={setShowConfirmStateChange}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-[#0D1B4B]">Cambiar Estado del Cliente</DialogTitle>
+            <DialogDescription>
+              Estado actual: <strong>{cliente?.estado}</strong>. Selecciona el nuevo estado:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="py-2">
+            <select
+              value={nuevoEstadoSeleccionado}
+              onChange={(e) => setNuevoEstadoSeleccionado(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0D1B4B]/40"
+            >
+              {['ACTIVO', 'INACTIVO', 'SUSPENDIDO']
+                .filter(e => e !== cliente?.estado)
+                .map(e => (
+                  <option key={e} value={e}>{e}</option>
+                ))
+              }
+            </select>
+          </div>
+          <DialogFooter className="mt-2">
+            <button
+              onClick={() => setShowConfirmStateChange(false)}
+              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={confirmarCambioEstado}
+              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
+            >
+              Confirmar Cambio
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de Información (Éxito o Alerta) */}
+      <Dialog open={showInfoDialog} onOpenChange={setShowInfoDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className={infoTitle === 'Error' ? 'text-red-600' : 'text-[#0D1B4B]'}>
+              {infoTitle}
+            </DialogTitle>
+            <DialogDescription>
+              {infoMessage}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="mt-4">
+            <button
+              onClick={() => setShowInfoDialog(false)}
+              className="px-4 py-2 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b] transition-colors"
+            >
+              Cerrar
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

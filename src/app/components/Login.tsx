@@ -84,12 +84,31 @@ export default function Login() {
               {loading ? 'Iniciando sesión...' : 'Iniciar Sesión'}
             </button>
 
-            <div className="mt-6 p-3 bg-blue-50 border border-blue-200 rounded-lg">
-              <p className="text-xs text-blue-700 mb-2">
-                <span className="font-semibold">Demo:</span> Use cualquier usuario/contraseña
-              </p>
-              <p className="text-xs text-blue-600">• Usuario: {config.defaultAdminUser} → Rol: ADMIN_CORE</p>
-              <p className="text-xs text-blue-600">• Otro usuario → Rol: OPERADOR</p>
+            <div className="mt-6 p-4 bg-[#0D1B4B]/5 border border-[#0D1B4B]/20 rounded-lg">
+              <p className="text-xs font-semibold text-[#0D1B4B] mb-3">🔑 Usuarios de prueba (modo demo) — contraseña: cualquiera</p>
+              <table className="w-full text-xs">
+                <thead>
+                  <tr className="border-b border-[#0D1B4B]/10">
+                    <th className="text-left pb-1 text-gray-500 font-medium">Usuario</th>
+                    <th className="text-left pb-1 text-gray-500 font-medium">Rol</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-100">
+                  {[
+                    { u: 'admin',      r: 'ADMIN_CORE' },
+                    { u: 'cajero',     r: 'CAJERO' },
+                    { u: 'operador',   r: 'OPERADOR' },
+                    { u: 'supervisor', r: 'SUPERVISOR_AGENCIA' },
+                    { u: 'auditor',    r: 'AUDITOR' },
+                  ].map(({ u, r }) => (
+                    <tr key={u} className="hover:bg-[#0D1B4B]/5 cursor-pointer" onClick={() => setFormData({ usuario: u, password: '1234' })}>
+                      <td className="py-1 font-mono text-[#0D1B4B] font-semibold">{u}</td>
+                      <td className="py-1 text-gray-600">{r}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="text-xs text-gray-400 mt-2">💡 Haz clic en una fila para auto-completar</p>
             </div>
           </form>
         </CardContent>
