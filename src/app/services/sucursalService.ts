@@ -3,7 +3,7 @@
 // Backend: /api/v1/core/sucursales
 // ============================================================================
 
-import { get, post } from './apiClient';
+import { get, post, put } from './apiClient';
 
 // --- Tipos alineados con los DTOs del backend ---
 
@@ -21,6 +21,7 @@ export interface SucursalRequest {
   nombre: string;
   ciudad: string;
   direccion?: string;
+  estado?: string;
 }
 
 // --- Servicio ---
@@ -60,4 +61,11 @@ export const SucursalService = {
    */
   crear: (data: SucursalRequest) =>
     post<SucursalResponse>('/sucursales', data),
+
+  /**
+   * PUT /api/v1/core/sucursales/{id}
+   * Actualizar sucursal existente
+   */
+  actualizar: (id: number, data: SucursalRequest) =>
+    put<SucursalResponse>(`/sucursales/${id}`, data),
 };

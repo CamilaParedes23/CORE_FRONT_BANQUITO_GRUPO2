@@ -1,10 +1,9 @@
 // ============================================================================
 // Servicio de Parámetros Core — Alineado con ParametroCoreController del backend
 // Backend: /api/v1/core/parametros
-// Nota: El backend NO tiene endpoint PATCH para editar parámetros
 // ============================================================================
 
-import { get } from './apiClient';
+import { get, post, put } from './apiClient';
 
 // --- Tipos alineados con los DTOs del backend ---
 
@@ -12,6 +11,14 @@ export interface ParametroCoreResponse {
   codigo: string;
   nombre: string;
   valorTexto: string;
+  tipoDato: 'NUMERICO' | 'HORA' | 'BOOLEANO' | 'CADENA' | 'FECHA';
+  descripcion: string;
+}
+
+export interface ParametroCoreRequest {
+  codigo: string;
+  nombre: string;
+  valor: string;
   tipoDato: 'NUMERICO' | 'HORA' | 'BOOLEANO' | 'CADENA' | 'FECHA';
   descripcion: string;
 }
@@ -39,4 +46,18 @@ export const ParametroService = {
    */
   obtenerPorCodigo: (codigo: string) =>
     get<ParametroCoreResponse>(`/parametros/${codigo}`),
+
+  /**
+   * POST /api/v1/core/parametros
+   * Crear un nuevo parámetro
+   */
+  crear: (data: ParametroCoreRequest) =>
+    post<ParametroCoreResponse>('/parametros', data),
+
+  /**
+   * PUT /api/v1/core/parametros/{codigo}
+   * Actualizar un parámetro existente
+   */
+  actualizar: (codigo: string, data: ParametroCoreRequest) =>
+    put<ParametroCoreResponse>(`/parametros/${codigo}`, data),
 };

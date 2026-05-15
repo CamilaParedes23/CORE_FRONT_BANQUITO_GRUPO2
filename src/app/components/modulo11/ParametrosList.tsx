@@ -1,25 +1,39 @@
 import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from '../ui/dialog';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription } from '../ui/alert';
-import { Pencil, AlertTriangle } from 'lucide-react';
+import { Button } from '../ui/button';
+import { Pencil, AlertTriangle, Plus } from 'lucide-react';
 import { ParametroService } from '../../services/parametroService';
-import type { ParametroCoreResponse } from '../../services/parametroService';
+import type { ParametroCoreResponse, ParametroCoreRequest } from '../../services/parametroService';
+import { useAuth } from '../../context/AuthContext';
 
 interface ParametrosListProps {
   navigate: (screen: string) => void;
 }
 
 export default function ParametrosList({ navigate }: ParametrosListProps) {
+  const { hasRole } = useAuth();
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showCreateModal, setShowCreateModal] = useState(false);
   const [selectedParam, setSelectedParam] = useState<ParametroCoreResponse | null>(null);
   const [editValue, setEditValue] = useState('');
   const [parametros, setParametros] = useState<ParametroCoreResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Estado para formulario de creación
+  const [createFormData, setCreateFormData] = useState<ParametroCoreRequest>({
+    codigo: '',
+    nombre: '',
+    valor: '',
+    tipoDato: 'CADENA',
+    descripcion: '',
+  });
 
   useEffect(() => {
     ParametroService.listar()
@@ -34,9 +48,68 @@ export default function ParametrosList({ navigate }: ParametrosListProps) {
     setShowEditModal(true);
   };
 
-  const handleSave = () => {
-    console.log('Guardando parámetro:', selectedParam?.codigo, 'con valor:', editValue);
-    setShowEditModal(false);
+  const handleSave = async () => {
+    if (!selectedParam) return;
+
+    setSubmitting(true);
+    try {
+      const updateData: ParametroCoreRequest = {
+        codigo: selectedParam.codigo,
+        nombre: selectedParam.nombre,
+        valor: editValue,
+        tipoDato: selectedParam.tipoDato,
+        descripcion: selectedParam.descripcion,
+      };
+      const actualizado = await ParametroService.actualizar(selectedParam.codigo, updateData);
+      setParametros(prev => prev.map(p => p.codigo === selectedParam.codigo ? actualizado : p));
+      setShowEditModal(false);
+      setSelectedParam(null);
+      setEditValue('');
+      setError(null);
+    } catch (err: any) {
+      console.error('Error al actualizar parámetro:', err);
+      alert(`Error al actualizar parámetro: ${err.message || 'Error desconocido'}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleCreate = async () => {
+    if (!createFormData.codigo || !createFormData.nombre || !createFormData.valor) {
+      alert('Los campos Código, Nombre y Valor son obligatorios.');
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const nuevo = await ParametroService.crear(createFormData);
+      setParametros(prev => [...prev, nuevo]);
+      setShowCreateModal(false);
+      setCreateFormData({
+        codigo: '',
+        nombre: '',
+        valor: '',
+        tipoDato: 'CADENA',
+        descripcion: '',
+      });
+      setError(null);
+    } catch (err: any) {
+      console.error('Error al crear parámetro:', err);
+      alert(`Error al crear parámetro: ${err.message || 'Error desconocido'}`);
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleAbrirCrear = () => {
+    setCreateFormData({
+      codigo: '',
+      nombre: '',
+      valor: '',
+      tipoDato: 'CADENA',
+      descripcion: '',
+    });
+    setShowCreateModal(true);
   };
 
   const renderEditField = () => {
@@ -126,9 +199,20 @@ export default function ParametrosList({ navigate }: ParametrosListProps) {
 
       <Card className="shadow-lg">
         <CardHeader className="border-b border-gray-200 bg-white">
-          <CardTitle className="text-[#0D1B4B]">
-            Listado de Parámetros {!loading && `(${parametros.length})`}
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-[#0D1B4B]">
+              Listado de Parámetros {!loading && `(${parametros.length})`}
+            </CardTitle>
+            {hasRole(['ADMIN_CORE']) && (
+              <button
+                onClick={handleAbrirCrear}
+                className="px-4 py-2 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b] flex items-center gap-2 text-sm font-medium"
+              >
+                <Plus className="w-4 h-4" />
+                Nuevo Parámetro
+              </button>
+            )}
+          </div>
         </CardHeader>
         <CardContent className="p-0">
           {loading ? (
@@ -138,7 +222,6 @@ export default function ParametrosList({ navigate }: ParametrosListProps) {
               <table className="w-full">
                 <thead>
                   <tr className="border-b border-gray-200 bg-gray-50">
-                    <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Código</th>
                     <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Nombre</th>
                     <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Valor Actual</th>
                     <th className="text-left py-4 px-6 text-sm font-semibold text-gray-700">Tipo de Dato</th>
@@ -149,7 +232,7 @@ export default function ParametrosList({ navigate }: ParametrosListProps) {
                 <tbody className="bg-white">
                   {parametros.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="text-center py-6 text-gray-500">
+                      <td colSpan={5} className="text-center py-6 text-gray-500">
                         No hay parámetros configurados
                       </td>
                     </tr>
@@ -161,11 +244,6 @@ export default function ParametrosList({ navigate }: ParametrosListProps) {
                           index % 2 === 0 ? 'bg-white' : 'bg-gray-50'
                         }`}
                       >
-                        <td className="py-4 px-6">
-                          <span className="font-mono text-xs font-medium text-[#0D1B4B] bg-blue-50 px-2 py-1 rounded">
-                            {param.codigo}
-                          </span>
-                        </td>
                         <td className="py-4 px-6 text-sm font-medium text-gray-900">{param.nombre}</td>
                         <td className="py-4 px-6">
                           <span className="text-sm font-semibold text-[#0D1B4B]">{param.valorTexto}</span>
@@ -177,13 +255,15 @@ export default function ParametrosList({ navigate }: ParametrosListProps) {
                         </td>
                         <td className="py-4 px-6 text-sm text-gray-600 max-w-xs">{param.descripcion}</td>
                         <td className="py-4 px-6">
-                          <button
-                            onClick={() => handleEdit(param)}
-                            className="p-2 hover:bg-[#0D1B4B] hover:text-white rounded-lg transition-colors group"
-                            title="Editar parámetro"
-                          >
-                            <Pencil className="w-4 h-4 text-[#0D1B4B] group-hover:text-white" />
-                          </button>
+                          {hasRole(['ADMIN_CORE']) && (
+                            <button
+                              onClick={() => handleEdit(param)}
+                              className="p-2 hover:bg-[#0D1B4B] hover:text-white rounded-lg transition-colors group"
+                              title="Editar parámetro"
+                            >
+                              <Pencil className="w-4 h-4 text-[#0D1B4B] group-hover:text-white" />
+                            </button>
+                          )}
                         </td>
                       </tr>
                     ))
@@ -240,18 +320,156 @@ export default function ParametrosList({ navigate }: ParametrosListProps) {
                 <button
                   onClick={() => setShowEditModal(false)}
                   className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium"
+                  disabled={submitting}
                 >
                   Cancelar
                 </button>
                 <button
                   onClick={handleSave}
                   className="flex-1 px-6 py-3 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b] font-medium"
+                  disabled={submitting}
                 >
-                  Guardar Cambios
+                  {submitting ? 'Guardando...' : 'Guardar Cambios'}
                 </button>
               </div>
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Crear Parámetro */}
+      <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-[#0D1B4B]">Nuevo Parámetro</DialogTitle>
+            <DialogDescription className="text-gray-500">
+              Complete los datos para registrar un nuevo parámetro del sistema.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Código *</Label>
+              <Input
+                placeholder="Ej: LIMITE_TRANSFERENCIA"
+                className="mt-2"
+                value={createFormData.codigo}
+                onChange={(e) => setCreateFormData({ ...createFormData, codigo: e.target.value.toUpperCase() })}
+              />
+            </div>
+            <div>
+              <Label>Nombre *</Label>
+              <Input
+                placeholder="Ej: Límite de Transferencia"
+                className="mt-2"
+                value={createFormData.nombre}
+                onChange={(e) => setCreateFormData({ ...createFormData, nombre: e.target.value })}
+              />
+            </div>
+            <div>
+              <Label>Tipo de Dato *</Label>
+              <select
+                className="mt-2 w-full px-3 py-2 border border-gray-300 rounded-lg"
+                value={createFormData.tipoDato}
+                onChange={(e) => setCreateFormData({ ...createFormData, tipoDato: e.target.value as any })}
+              >
+                <option value="CADENA">Cadena</option>
+                <option value="NUMERICO">Numérico</option>
+                <option value="HORA">Hora</option>
+                <option value="BOOLEANO">Booleano</option>
+                <option value="FECHA">Fecha</option>
+              </select>
+            </div>
+            <div>
+              <Label>Valor *</Label>
+              {createFormData.tipoDato === 'NUMERICO' && (
+                <Input
+                  type="number"
+                  step="0.01"
+                  placeholder="Ej: 1000.00"
+                  className="mt-2"
+                  value={createFormData.valor}
+                  onChange={(e) => setCreateFormData({ ...createFormData, valor: e.target.value })}
+                />
+              )}
+              {createFormData.tipoDato === 'HORA' && (
+                <Input
+                  type="time"
+                  step="1"
+                  className="mt-2"
+                  value={createFormData.valor}
+                  onChange={(e) => setCreateFormData({ ...createFormData, valor: e.target.value })}
+                />
+              )}
+              {createFormData.tipoDato === 'BOOLEANO' && (
+                <div className="mt-2 flex items-center gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setCreateFormData({ ...createFormData, valor: createFormData.valor === 'true' ? 'false' : 'true' })}
+                    className={`relative inline-flex h-8 w-14 items-center rounded-full transition-colors ${
+                      createFormData.valor === 'true' ? 'bg-[#0D1B4B]' : 'bg-gray-300'
+                    }`}
+                  >
+                    <span
+                      className={`inline-block h-6 w-6 transform rounded-full bg-white transition-transform ${
+                        createFormData.valor === 'true' ? 'translate-x-7' : 'translate-x-1'
+                      }`}
+                    />
+                  </button>
+                  <span className="text-sm font-medium">
+                    {createFormData.valor === 'true' ? 'Habilitado' : 'Deshabilitado'}
+                  </span>
+                </div>
+              )}
+              {createFormData.tipoDato === 'FECHA' && (
+                <Input
+                  type="date"
+                  className="mt-2"
+                  value={createFormData.valor}
+                  onChange={(e) => setCreateFormData({ ...createFormData, valor: e.target.value })}
+                />
+              )}
+              {createFormData.tipoDato === 'CADENA' && (
+                <Input
+                  type="text"
+                  placeholder="Ej: Valor del parámetro"
+                  className="mt-2"
+                  value={createFormData.valor}
+                  onChange={(e) => setCreateFormData({ ...createFormData, valor: e.target.value })}
+                />
+              )}
+            </div>
+            <div>
+              <Label>Descripción</Label>
+              <Input
+                placeholder="Descripción del parámetro"
+                className="mt-2"
+                value={createFormData.descripcion}
+                onChange={(e) => setCreateFormData({ ...createFormData, descripcion: e.target.value })}
+              />
+            </div>
+            <Alert className="bg-yellow-50 border-2 border-yellow-400">
+              <AlertTriangle className="w-5 h-5 text-yellow-600" />
+              <AlertDescription className="ml-2 text-yellow-800 font-medium">
+                Este parámetro afectará el comportamiento del sistema. Verifique el valor antes de crearlo.
+              </AlertDescription>
+            </Alert>
+            <div className="flex gap-4 pt-4">
+              <button
+                onClick={() => setShowCreateModal(false)}
+                className="flex-1 px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 font-medium"
+                disabled={submitting}
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={handleCreate}
+                className="flex-1 px-6 py-3 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b] font-medium"
+                disabled={submitting}
+              >
+                {submitting ? 'Creando...' : 'Crear Parámetro'}
+              </button>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>
