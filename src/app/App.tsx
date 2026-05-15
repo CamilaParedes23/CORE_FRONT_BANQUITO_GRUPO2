@@ -98,7 +98,7 @@ function AppContent() {
 
       case 'cuentas': return <CuentasList navigate={navigate} />;
       case 'cuenta-ficha': return <CuentaFicha navigate={navigate} numeroCuenta={selectedId} />;
-      case 'cuenta-nueva': return <CuentaAperturaForm navigate={navigate} />;
+      case 'cuenta-nueva': return <CuentaAperturaForm navigate={navigate} clienteId={selectedId || undefined} />;
 
       case 'transaccion-debito': return <TransaccionDebito navigate={navigate} />;
       case 'transaccion-credito': return <TransaccionCredito navigate={navigate} />;

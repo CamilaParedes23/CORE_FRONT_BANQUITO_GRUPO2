@@ -25,7 +25,7 @@ export default function TransaccionCredito({ navigate }: TransaccionCreditoProps
   const [formData, setFormData] = useState({
     cuentaOrigen: '',
     cuentaDestino: '',
-    subtipo: 'DEP_EFECTIVO',
+    subtipo: 'DEPOSITO_VENTANILLA',
     monto: '',
     descripcion: '',
   });
@@ -38,6 +38,7 @@ export default function TransaccionCredito({ navigate }: TransaccionCreditoProps
     fechaHora: string;
     cuentaAcreditada: string;
     monto: number;
+    comision: number;
     subtipo: string;
     descripcion: string;
     uuid: string;
@@ -80,6 +81,7 @@ export default function TransaccionCredito({ navigate }: TransaccionCreditoProps
         fechaHora: formatFechaHora(new Date()),
         cuentaAcreditada: snapshotFormData.cuentaDestino.trim(),
         monto: Number(snapshotFormData.monto),
+        comision: 0,
         subtipo: snapshotFormData.subtipo,
         descripcion: snapshotFormData.descripcion.trim(),
         uuid,
@@ -139,7 +141,10 @@ export default function TransaccionCredito({ navigate }: TransaccionCreditoProps
                 <span className="text-gray-600 font-medium">Monto Acreditado</span>
                 <span className="text-2xl font-bold text-green-600">+ ${comprobante.monto.toFixed(2)}</span>
               </div>
-              <p className="text-xs text-gray-300 text-center font-mono break-all">{comprobante.uuid}</p>
+              <div className="flex justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
+                <span className="text-gray-500">Comisión</span>
+                <span className="font-semibold text-gray-700">${comprobante.comision.toFixed(2)}</span>
+              </div>
             </div>
 
             <div className="px-6 pb-6 flex gap-3">
@@ -165,13 +170,6 @@ export default function TransaccionCredito({ navigate }: TransaccionCreditoProps
           <CardTitle className="text-[#0D1B4B]">Datos de la Transacción</CardTitle>
         </CardHeader>
         <CardContent>
-          <Alert className="mb-6 bg-blue-50 border-blue-200">
-            <AlertDescription className="text-blue-700 text-sm">
-              El sistema genera automáticamente el UUID de operación y la clave de idempotencia.
-              Ambas cuentas deben estar <strong>ACTIVAS</strong> en el sistema.
-            </AlertDescription>
-          </Alert>
-
           {errorGeneral && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
               ⚠️ {errorGeneral}
@@ -208,7 +206,7 @@ export default function TransaccionCredito({ navigate }: TransaccionCreditoProps
                 onChange={(e) => { setFormData({ ...formData, subtipo: e.target.value }); setErrores((p) => ({ ...p, subtipo: '' })); }}
                 className={`w-full mt-2 px-3 py-2 border rounded-lg ${errores.subtipo ? 'border-red-400' : ''}`}
               >
-                <option value="DEP_EFECTIVO">Depósito en Efectivo</option>
+                <option value="DEPOSITO_VENTANILLA">Depósito en Efectivo</option>
                 <option value="ABONO_NOMINA">Abono de Nómina</option>
                 <option value="TRANSFERENCIA_RECIBIDA">Transferencia Recibida</option>
                 <option value="INGRESO_SERVICIO_MASIVO">Ingreso Servicio Masivo</option>

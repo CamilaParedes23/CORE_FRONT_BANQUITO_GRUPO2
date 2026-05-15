@@ -187,7 +187,7 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
               <div className="flex items-center justify-between">
                 <CardTitle className="text-[#0D1B4B]">Cuentas del Cliente</CardTitle>
                 <button
-                  onClick={() => navigate('cuenta-nueva')}
+                  onClick={() => navigate('cuenta-nueva', clienteId || undefined)}
                   className="px-4 py-2 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b]"
                 >
                   Nueva Cuenta

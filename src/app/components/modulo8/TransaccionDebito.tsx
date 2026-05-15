@@ -26,7 +26,7 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
   const [formData, setFormData] = useState({
     cuentaOrigen: '',
     cuentaDestino: '',
-    subtipo: 'RET_EFECTIVO',
+    subtipo: 'RETIRO_CAJERO',
     monto: '',
     descripcion: '',
   });
@@ -39,6 +39,7 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
     fechaHora: string;
     cuentaDebitada: string;
     monto: number;
+    comision: number;
     subtipo: string;
     descripcion: string;
     saldoDisponible: number;
@@ -84,6 +85,7 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
         fechaHora: formatFechaHora(new Date()),
         cuentaDebitada: snapshotFormData.cuentaOrigen.trim(),
         monto: Number(snapshotFormData.monto),
+        comision: 0, // Se actualizará cuando el backend proporcione este valor
         subtipo: snapshotFormData.subtipo,
         descripcion: snapshotFormData.descripcion.trim(),
         saldoDisponible: Number(resp.saldoDisponibleOrigen),
@@ -149,10 +151,13 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
                 <span className="text-2xl font-bold text-red-600">- ${comprobante.monto.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
+                <span className="text-gray-500">Comisión</span>
+                <span className="font-semibold text-gray-700">${comprobante.comision.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
                 <span className="text-gray-500">Saldo disponible</span>
                 <span className="font-semibold text-gray-700">${comprobante.saldoDisponible.toFixed(2)}</span>
               </div>
-              <p className="text-xs text-gray-300 text-center font-mono break-all">{comprobante.uuid}</p>
             </div>
 
             {/* Acciones */}
@@ -179,13 +184,6 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
           <CardTitle className="text-[#0D1B4B]">Datos de la Transacción</CardTitle>
         </CardHeader>
         <CardContent>
-          <Alert className="mb-6 bg-blue-50 border-blue-200">
-            <AlertDescription className="text-blue-700 text-sm">
-              El sistema genera automáticamente el UUID de operación y la clave de idempotencia.
-              Ambas cuentas deben estar <strong>ACTIVAS</strong> en el sistema.
-            </AlertDescription>
-          </Alert>
-
           {errorGeneral && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
               ⚠️ {errorGeneral}
@@ -222,9 +220,7 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
                 onChange={(e) => { setFormData({ ...formData, subtipo: e.target.value }); setErrores((p) => ({ ...p, subtipo: '' })); }}
                 className={`w-full mt-2 px-3 py-2 border rounded-lg ${errores.subtipo ? 'border-red-400' : ''}`}
               >
-                <option value="RET_EFECTIVO">Retiro en Efectivo</option>
-                <option value="PAGO_MASIVO">Pago Masivo</option>
-                <option value="COMPRA_COMERCIO">Compra en Comercio</option>
+                <option value="RETIRO_CAJERO">Retiro en Efectivo</option>
                 <option value="COBRO_COMISION">Cobro de Comisión</option>
                 <option value="PAGO_IMPUESTO">Pago de Impuesto</option>
                 <option value="TRANSFERENCIA_SALIDA">Transferencia Salida</option>

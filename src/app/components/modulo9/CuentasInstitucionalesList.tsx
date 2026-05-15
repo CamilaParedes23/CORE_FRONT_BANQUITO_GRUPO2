@@ -57,8 +57,7 @@ export default function CuentasInstitucionalesList({ navigate }: CuentasInstituc
               <table className="w-full">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Número</th>
-                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Código</th>
+                    <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Número de cuenta</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Nombre</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Tipo</th>
                     <th className="text-left py-3 px-4 text-sm font-medium text-gray-600">Saldo Contable</th>
@@ -68,7 +67,7 @@ export default function CuentasInstitucionalesList({ navigate }: CuentasInstituc
                 <tbody>
                   {cuentas.length === 0 ? (
                     <tr>
-                      <td colSpan={6} className="text-center py-6 text-gray-500">
+                      <td colSpan={5} className="text-center py-6 text-gray-500">
                         No hay cuentas institucionales registradas
                       </td>
                     </tr>
@@ -76,9 +75,6 @@ export default function CuentasInstitucionalesList({ navigate }: CuentasInstituc
                     cuentas.map((cuenta) => (
                       <tr key={cuenta.id} className="border-b hover:bg-gray-50">
                         <td className="py-3 px-4 text-sm font-medium">{cuenta.numeroCuenta}</td>
-                        <td className="py-3 px-4 text-sm font-mono text-xs bg-blue-50 px-2 py-1 rounded m-2">
-                          {cuenta.codigo}
-                        </td>
                         <td className="py-3 px-4 text-sm">{cuenta.nombre}</td>
                         <td className="py-3 px-4 text-sm">
                           <Badge className={tipoBadgeColor(cuenta.tipoCuenta)}>

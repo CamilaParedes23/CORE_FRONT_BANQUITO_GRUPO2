@@ -11,6 +11,7 @@ import type { SucursalResponse } from '../../services/sucursalService';
 
 interface CuentaAperturaFormProps {
   navigate: (screen: string, id?: string) => void;
+  clienteId?: string;
 }
 
 // SubtiposCuenta del backend (SUBTIPO_CUENTA table):
@@ -18,12 +19,12 @@ interface CuentaAperturaFormProps {
 // 2 = CTE_STD — Cuenta Corriente Estándar
 // 3 = NOM_STD — Cuenta de Nómina
 const SUBTIPOS_CUENTA = [
-  { id: 1, nombre: 'Cuenta de Ahorros Estándar (AHO_STD)' },
-  { id: 2, nombre: 'Cuenta Corriente Estándar (CTE_STD)' },
-  { id: 3, nombre: 'Cuenta de Nómina (NOM_STD)' },
+  { id: 1, nombre: 'Cuenta de Ahorros Estándar' },
+  { id: 2, nombre: 'Cuenta Corriente Estándar' },
+  { id: 3, nombre: 'Cuenta de Nómina' },
 ];
 
-export default function CuentaAperturaForm({ navigate }: CuentaAperturaFormProps) {
+export default function CuentaAperturaForm({ navigate, clienteId }: CuentaAperturaFormProps) {
   const [identificacion, setIdentificacion] = useState('');
   const [buscandoCliente, setBuscandoCliente] = useState(false);
   const [clienteEncontrado, setClienteEncontrado] = useState<ClienteResponse | null>(null);
@@ -44,6 +45,28 @@ export default function CuentaAperturaForm({ navigate }: CuentaAperturaFormProps
       .then(setSucursales)
       .catch(() => setSucursales([]));
   }, []);
+
+  // Cargar cliente automáticamente si se proporciona clienteId
+  useEffect(() => {
+    if (clienteId) {
+      const id = parseInt(clienteId, 10);
+      if (!isNaN(id)) {
+        setBuscandoCliente(true);
+        setErrorCliente(null);
+        ClienteService.obtenerPorId(id)
+          .then((cliente) => {
+            setClienteEncontrado(cliente);
+            setIdentificacion(cliente.identificacion);
+          })
+          .catch((err) => {
+            setErrorCliente('Error al cargar el cliente: ' + (err?.message || 'Desconocido'));
+          })
+          .finally(() => {
+            setBuscandoCliente(false);
+          });
+      }
+    }
+  }, [clienteId]);
 
   // ── Buscar cliente ────────────────────────────────────────────────────────
 
@@ -131,42 +154,52 @@ export default function CuentaAperturaForm({ navigate }: CuentaAperturaFormProps
 
             {/* Búsqueda de cliente */}
             <div>
-              <Label>Cliente (Cédula / RUC / Pasaporte) *</Label>
-              <div className="flex gap-2 mt-2">
+              <Label>Cliente (Cédula / RUC / Pasaporte)</Label>
+              {!clienteId ? (
+                <>
+                  <div className="flex gap-2 mt-2">
+                    <Input
+                      value={identificacion}
+                      onChange={(e) => {
+                        setIdentificacion(e.target.value);
+                        setClienteEncontrado(null);
+                        setErrorCliente(null);
+                        setErrores((prev) => ({ ...prev, identificacion: '' }));
+                      }}
+                      placeholder="Ingrese cédula o RUC del cliente..."
+                      onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), buscarCliente())}
+                      className={errores.identificacion ? 'border-red-400' : ''}
+                    />
+                    <button
+                      type="button"
+                      onClick={buscarCliente}
+                      disabled={!identificacion.trim() || buscandoCliente}
+                      className="px-4 py-2 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b] disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
+                    >
+                      <Search className="w-4 h-4" />
+                      {buscandoCliente ? 'Buscando...' : 'Buscar'}
+                    </button>
+                  </div>
+                  {errores.identificacion && (
+                    <p className="text-xs text-red-600 mt-1">{errores.identificacion}</p>
+                  )}
+                  {errorCliente && (
+                    <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-sm text-orange-700">
+                      {errorCliente}
+                    </div>
+                  )}
+                </>
+              ) : (
                 <Input
                   value={identificacion}
-                  onChange={(e) => {
-                    setIdentificacion(e.target.value);
-                    setClienteEncontrado(null);
-                    setErrorCliente(null);
-                    setErrores((prev) => ({ ...prev, identificacion: '' }));
-                  }}
-                  placeholder="Ingrese cédula o RUC del cliente..."
-                  onKeyDown={(e) => e.key === 'Enter' && (e.preventDefault(), buscarCliente())}
-                  className={errores.identificacion ? 'border-red-400' : ''}
+                  disabled
+                  className="mt-2 bg-gray-100 font-semibold text-lg"
                 />
-                <button
-                  type="button"
-                  onClick={buscarCliente}
-                  disabled={!identificacion.trim() || buscandoCliente}
-                  className="px-4 py-2 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b] disabled:opacity-50 flex items-center gap-2 whitespace-nowrap"
-                >
-                  <Search className="w-4 h-4" />
-                  {buscandoCliente ? 'Buscando...' : 'Buscar'}
-                </button>
-              </div>
-              {errores.identificacion && (
-                <p className="text-xs text-red-600 mt-1">{errores.identificacion}</p>
-              )}
-              {errorCliente && (
-                <div className="mt-2 p-2 bg-orange-50 border border-orange-200 rounded text-sm text-orange-700">
-                  {errorCliente}
-                </div>
               )}
               {clienteEncontrado && (
-                <div className="mt-2 p-3 bg-green-50 border border-green-200 rounded-lg">
-                  <p className="text-sm font-medium text-green-800">✅ Cliente encontrado:</p>
-                  <p className="text-sm text-green-700 mt-1">
+                <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                  <p className="text-sm font-medium text-blue-800">Cliente encontrado:</p>
+                  <p className="text-sm text-blue-700 mt-1">
                     <span className="font-medium">{clienteEncontrado.nombreVisual}</span>
                     {' · '}
                     {clienteEncontrado.tipoIdentificacion}: {clienteEncontrado.identificacion}

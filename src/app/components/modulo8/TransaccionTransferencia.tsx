@@ -39,6 +39,7 @@ export default function TransaccionTransferencia({ navigate }: TransaccionTransf
     cuentaOrigen: string;
     cuentaDestino: string;
     monto: number;
+    comision: number;
     descripcion: string;
     saldoDisponible: number;
     uuid: string;
@@ -81,6 +82,7 @@ export default function TransaccionTransferencia({ navigate }: TransaccionTransf
         cuentaOrigen: snap.cuentaOrigen.trim(),
         cuentaDestino: snap.cuentaDestino.trim(),
         monto: Number(snap.monto),
+        comision: 0,
         descripcion: snap.descripcion.trim(),
         saldoDisponible: Number(resp.saldoDisponibleOrigen),
         uuid,
@@ -141,10 +143,13 @@ export default function TransaccionTransferencia({ navigate }: TransaccionTransf
                 <span className="text-2xl font-bold text-[#0D1B4B]">${comprobante.monto.toFixed(2)}</span>
               </div>
               <div className="flex justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
+                <span className="text-gray-500">Comisión</span>
+                <span className="font-semibold text-gray-700">${comprobante.comision.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
                 <span className="text-gray-500">Saldo disponible origen</span>
                 <span className="font-semibold text-gray-700">${comprobante.saldoDisponible.toFixed(2)}</span>
               </div>
-              <p className="text-xs text-gray-300 text-center font-mono break-all">{comprobante.uuid}</p>
             </div>
 
             <div className="px-6 pb-6 flex gap-3">
@@ -170,13 +175,6 @@ export default function TransaccionTransferencia({ navigate }: TransaccionTransf
           <CardTitle className="text-[#0D1B4B]">Datos de la Transferencia</CardTitle>
         </CardHeader>
         <CardContent>
-          <Alert className="mb-6 bg-blue-50 border-blue-200">
-            <AlertDescription className="text-blue-700 text-sm">
-              El sistema genera automáticamente el UUID de operación y la clave de idempotencia.
-              Ambas cuentas deben estar <strong>ACTIVAS</strong> y tener saldo suficiente en el origen.
-            </AlertDescription>
-          </Alert>
-
           {errorGeneral && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
               ⚠️ {errorGeneral}
@@ -227,10 +225,6 @@ export default function TransaccionTransferencia({ navigate }: TransaccionTransf
                 className="w-full mt-2 px-3 py-2 border rounded-lg"
               >
                 <option value="TRANSFERENCIA_SALIDA">Transferencia Interna BanQuito</option>
-                <option value="PAGO_MASIVO">Pago Masivo</option>
-                <option value="RET_EFECTIVO">Retiro en Efectivo</option>
-                <option value="COMPRA_COMERCIO">Compra en Comercio</option>
-                <option value="PAGO_IMPUESTO">Pago de Impuesto</option>
               </select>
             </div>
 

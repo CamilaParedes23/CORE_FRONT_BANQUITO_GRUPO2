@@ -5,8 +5,12 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { RefreshCw } from 'lucide-react';
 import { CuentaService } from '../../services/cuentaService';
 import { TransaccionService } from '../../services/transaccionService';
+import { ClienteService } from '../../services/clienteService';
+import { SucursalService } from '../../services/sucursalService';
 import type { CuentaResponse, SaldoResponse } from '../../services/cuentaService';
 import type { MovimientoCuentaResponse } from '../../services/transaccionService';
+import type { ClienteResponse } from '../../services/clienteService';
+import type { SucursalResponse } from '../../services/sucursalService';
 
 interface CuentaFichaProps {
   navigate: (screen: string, id?: string) => void;
@@ -20,6 +24,8 @@ export default function CuentaFicha({ navigate, numeroCuenta }: CuentaFichaProps
   const [loading, setLoading] = useState(true);
   const [loadingMovimientos, setLoadingMovimientos] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [cliente, setCliente] = useState<ClienteResponse | null>(null);
+  const [sucursal, setSucursal] = useState<SucursalResponse | null>(null);
 
   const cargarMovimientos = async (num: string) => {
     setLoadingMovimientos(true);
@@ -46,6 +52,18 @@ export default function CuentaFicha({ navigate, numeroCuenta }: CuentaFichaProps
         setCuenta(cuentaData);
         setSaldo(saldoData);
         cargarMovimientos(numeroCuenta);
+
+        // Cargar cliente y sucursal
+        if (cuentaData.clienteId) {
+          ClienteService.obtenerPorId(cuentaData.clienteId)
+            .then(setCliente)
+            .catch(() => {});
+        }
+        if (cuentaData.sucursalId) {
+          SucursalService.obtenerPorId(cuentaData.sucursalId)
+            .then(setSucursal)
+            .catch(() => {});
+        }
       })
       .catch(err => setError(err.message || 'Error al cargar datos de la cuenta'))
       .finally(() => setLoading(false));
@@ -91,7 +109,7 @@ export default function CuentaFicha({ navigate, numeroCuenta }: CuentaFichaProps
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-2xl text-[#0D1B4B]">Cuenta {cuenta.numeroCuenta}</CardTitle>
-              <p className="text-gray-600 mt-1">Cliente ID: {cuenta.clienteId} | Sucursal ID: {cuenta.sucursalId}</p>
+              <p className="text-gray-600 mt-1">Cliente: {cliente?.nombreVisual || 'Cargando...'} | Sucursal: {sucursal?.nombre || 'Cargando...'}</p>
             </div>
             <Badge className={String(cuenta.estado) === 'ACTIVA' ? 'bg-green-600' : 'bg-orange-600'}>
               {String(cuenta.estado)}
