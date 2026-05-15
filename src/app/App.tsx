@@ -12,7 +12,8 @@ import UsuariosCoreList from './components/modulo2/UsuariosCoreList';
 import SucursalesList from './components/modulo4/SucursalesList';
 
 // Módulo 5: Clientes
-import ClientesList from './components/modulo5/ClientesList';
+import ClienteNaturalLista from './components/modulo5/ClienteNaturalLista';
+import ClienteJuridicoLista from './components/modulo5/ClienteJuridicoLista';
 import ClientesBusqueda from './components/modulo5/ClientesBusqueda';
 import ClienteFicha from './components/modulo5/ClienteFicha';
 import ClienteNaturalForm from './components/modulo5/ClienteNaturalForm';
@@ -66,7 +67,8 @@ function AppContent() {
 
     { divider: true, label: 'OPERACIONES', roles: ['CAJERO', 'OPERADOR', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
     { key: 'clientes-busqueda', label: 'Buscar Cliente', roles: ['CAJERO', 'OPERADOR', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
-    { key: 'clientes', label: 'Clientes', roles: ['OPERADOR', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
+    { key: 'clientes-naturales', label: 'Clientes Naturales', roles: ['OPERADOR', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
+    { key: 'clientes-juridicos', label: 'Clientes Jurídicos', roles: ['OPERADOR', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
     { key: 'cuentas', label: 'Cuentas', roles: ['CAJERO', 'OPERADOR', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
 
     { divider: true, label: 'TRANSACCIONES', roles: ['OPERADOR', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
@@ -91,14 +93,15 @@ function AppContent() {
       case 'sucursales': return <SucursalesList navigate={navigate} />;
 
       case 'clientes-busqueda': return <ClientesBusqueda navigate={navigate} />;
-      case 'clientes': return <ClientesList navigate={navigate} />;
+      case 'clientes-naturales': return <ClienteNaturalLista navigate={navigate} />;
+      case 'clientes-juridicos': return <ClienteJuridicoLista navigate={navigate} />;
       case 'cliente-ficha': return <ClienteFicha navigate={navigate} clienteId={selectedId} />;
       case 'cliente-natural-nuevo': return <ClienteNaturalForm navigate={navigate} />;
       case 'cliente-juridico-nuevo': return <ClienteJuridicoForm navigate={navigate} />;
 
       case 'cuentas': return <CuentasList navigate={navigate} />;
-      case 'cuenta-ficha': return <CuentaFicha navigate={navigate} numeroCuenta={selectedId} />;
-      case 'cuenta-nueva': return <CuentaAperturaForm navigate={navigate} clienteId={selectedId || undefined} />;
+      case 'cuenta-ficha': return <CuentaFicha navigate={navigate} numeroCuenta={selectedId || ''} />;
+      case 'cuenta-nueva': return <CuentaAperturaForm navigate={navigate} clienteId={selectedId || ''} />;
 
       case 'transaccion-debito': return <TransaccionDebito navigate={navigate} />;
       case 'transaccion-credito': return <TransaccionCredito navigate={navigate} />;

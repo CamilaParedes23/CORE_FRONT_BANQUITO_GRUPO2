@@ -2,15 +2,19 @@ import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 import { RefreshCw } from 'lucide-react';
 import { CuentaService } from '../../services/cuentaService';
 import { TransaccionService } from '../../services/transaccionService';
 import { ClienteService } from '../../services/clienteService';
 import { SucursalService } from '../../services/sucursalService';
-import type { CuentaResponse, SaldoResponse } from '../../services/cuentaService';
+import type { CuentaResponse, SaldoResponse, CambioEstadoData, BloqueoData } from '../../services/cuentaService';
 import type { MovimientoCuentaResponse } from '../../services/transaccionService';
 import type { ClienteResponse } from '../../services/clienteService';
 import type { SucursalResponse } from '../../services/sucursalService';
+import { useAuth } from '../../context/AuthContext';
 
 interface CuentaFichaProps {
   navigate: (screen: string, id?: string) => void;
@@ -18,6 +22,7 @@ interface CuentaFichaProps {
 }
 
 export default function CuentaFicha({ navigate, numeroCuenta }: CuentaFichaProps) {
+  const { hasRole, user } = useAuth();
   const [cuenta, setCuenta] = useState<CuentaResponse | null>(null);
   const [saldo, setSaldo] = useState<SaldoResponse | null>(null);
   const [movimientos, setMovimientos] = useState<MovimientoCuentaResponse[]>([]);
@@ -26,6 +31,21 @@ export default function CuentaFicha({ navigate, numeroCuenta }: CuentaFichaProps
   const [error, setError] = useState<string | null>(null);
   const [cliente, setCliente] = useState<ClienteResponse | null>(null);
   const [sucursal, setSucursal] = useState<SucursalResponse | null>(null);
+
+  // Estados para modales
+  const [showEstadoModal, setShowEstadoModal] = useState(false);
+  const [showBloqueoModal, setShowBloqueoModal] = useState(false);
+  const [estadoFormData, setEstadoFormData] = useState({
+    nuevoEstado: 'ACTIVA' as 'ACTIVA' | 'INACTIVA' | 'BLOQUEADA' | 'SUSPENDIDA',
+    motivoCambio: '',
+  });
+  const [bloqueoFormData, setBloqueoFormData] = useState({
+    montoBloqueado: '',
+    motivo: 'PREVIO_PAGO' as 'JUDICIAL' | 'PREVIO_PAGO' | 'GARANTIA',
+    referenciaExterna: '',
+  });
+  const [submitting, setSubmitting] = useState(false);
+  const [formErrores, setFormErrores] = useState<Record<string, string>>({});
 
   const cargarMovimientos = async (num: string) => {
     setLoadingMovimientos(true);
@@ -96,6 +116,98 @@ export default function CuentaFicha({ navigate, numeroCuenta }: CuentaFichaProps
   const saldoContable = saldo ? Number(saldo.saldoContable) : Number(cuenta.saldoContable);
   const saldoDisponible = saldo ? Number(saldo.saldoDisponible) : Number(cuenta.saldoDisponible);
   const totalBloqueado = saldoContable - saldoDisponible;
+
+  // Handlers para modales
+  const handleAbrirEstadoModal = () => {
+    if (!cuenta) return;
+    const opciones = ['ACTIVA', 'INACTIVA', 'BLOQUEADA', 'SUSPENDIDA'] as const;
+    const siguiente = opciones.find(e => e !== cuenta.estado) || 'INACTIVA';
+    setEstadoFormData({
+      nuevoEstado: siguiente,
+      motivoCambio: '',
+    });
+    setFormErrores({});
+    setShowEstadoModal(true);
+  };
+
+  const handleGuardarEstado = async () => {
+    if (!cuenta) return;
+
+    const nuevosErrores: Record<string, string> = {};
+    if (!estadoFormData.motivoCambio.trim()) nuevosErrores.motivoCambio = 'El motivo es obligatorio.';
+
+    if (Object.keys(nuevosErrores).length > 0) {
+      setFormErrores(nuevosErrores);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const data: CambioEstadoData = {
+        nuevoEstado: estadoFormData.nuevoEstado,
+        motivoCambio: estadoFormData.motivoCambio.trim(),
+        usuarioCoreId: typeof user?.id === 'number' ? user.id : parseInt(user?.id || '1'),
+      };
+      const actualizada = await CuentaService.cambiarEstado(cuenta.id, data);
+      setCuenta(actualizada);
+      setShowEstadoModal(false);
+      // Recargar saldo
+      if (numeroCuenta) {
+        const saldoData = await CuentaService.obtenerSaldo(numeroCuenta);
+        setSaldo(saldoData);
+      }
+    } catch (err: any) {
+      setFormErrores({ general: err.message || 'Error al cambiar estado' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
+  const handleAbrirBloqueoModal = () => {
+    setBloqueoFormData({
+      montoBloqueado: '',
+      motivo: 'PREVIO_PAGO',
+      referenciaExterna: '',
+    });
+    setFormErrores({});
+    setShowBloqueoModal(true);
+  };
+
+  const handleGuardarBloqueo = async () => {
+    if (!cuenta) return;
+
+    const nuevosErrores: Record<string, string> = {};
+    if (!bloqueoFormData.montoBloqueado.trim()) nuevosErrores.montoBloqueado = 'El monto es obligatorio.';
+    else if (isNaN(Number(bloqueoFormData.montoBloqueado)) || Number(bloqueoFormData.montoBloqueado) <= 0) {
+      nuevosErrores.montoBloqueado = 'Ingrese un monto válido mayor a 0.';
+    }
+
+    if (Object.keys(nuevosErrores).length > 0) {
+      setFormErrores(nuevosErrores);
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      const data: BloqueoData = {
+        montoBloqueado: Number(bloqueoFormData.montoBloqueado),
+        motivo: bloqueoFormData.motivo,
+        referenciaExterna: bloqueoFormData.referenciaExterna.trim() || undefined,
+        usuarioCoreId: typeof user?.id === 'number' ? user.id : parseInt(user?.id || '1'),
+      };
+      await CuentaService.crearBloqueo(cuenta.id, data);
+      setShowBloqueoModal(false);
+      // Recargar saldo
+      if (numeroCuenta) {
+        const saldoData = await CuentaService.obtenerSaldo(numeroCuenta);
+        setSaldo(saldoData);
+      }
+    } catch (err: any) {
+      setFormErrores({ general: err.message || 'Error al crear bloqueo' });
+    } finally {
+      setSubmitting(false);
+    }
+  };
 
   return (
     <div className="p-8 bg-[#F5F7FA] min-h-full">
@@ -184,12 +296,14 @@ export default function CuentaFicha({ navigate, numeroCuenta }: CuentaFichaProps
                 )}
               </div>
               <div className="flex gap-4">
-                <button className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700">
+                <button onClick={handleAbrirEstadoModal} className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700">
                   Cambiar Estado
                 </button>
-                <button className="px-6 py-2 bg-[#C9A84C] text-[#0D1B4B] rounded-lg hover:bg-[#b89640]">
-                  Agregar Bloqueo
-                </button>
+                {hasRole(['ADMIN_CORE']) && (
+                  <button onClick={handleAbrirBloqueoModal} className="px-6 py-2 bg-[#C9A84C] text-[#0D1B4B] rounded-lg hover:bg-[#b89640]">
+                    Agregar Bloqueo
+                  </button>
+                )}
               </div>
             </CardContent>
           </Card>
@@ -245,6 +359,141 @@ export default function CuentaFicha({ navigate, numeroCuenta }: CuentaFichaProps
           </Card>
         </TabsContent>
       </Tabs>
+
+      {/* Modal de Cambiar Estado */}
+      <Dialog open={showEstadoModal} onOpenChange={setShowEstadoModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-[#0D1B4B]">Cambiar Estado de la Cuenta</DialogTitle>
+            <DialogDescription>
+              Estado actual: <strong>{cuenta?.estado}</strong>
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Nuevo Estado *</Label>
+              <select
+                value={estadoFormData.nuevoEstado}
+                onChange={(e) => {
+                  setEstadoFormData({ ...estadoFormData, nuevoEstado: e.target.value as any });
+                  setFormErrores((prev) => ({ ...prev, nuevoEstado: '' }));
+                }}
+                className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0D1B4B]/40"
+              >
+                {['ACTIVA', 'INACTIVA', 'BLOQUEADA', 'SUSPENDIDA']
+                  .filter(e => e !== cuenta?.estado)
+                  .map(e => (
+                    <option key={e} value={e}>{e}</option>
+                  ))
+                }
+              </select>
+            </div>
+            <div>
+              <Label>Motivo *</Label>
+              <Input
+                value={estadoFormData.motivoCambio}
+                onChange={(e) => {
+                  setEstadoFormData({ ...estadoFormData, motivoCambio: e.target.value });
+                  setFormErrores((prev) => ({ ...prev, motivoCambio: '' }));
+                }}
+                className={`mt-2 ${formErrores.motivoCambio ? 'border-red-400' : ''}`}
+                placeholder="Ingrese el motivo del cambio de estado"
+              />
+              {formErrores.motivoCambio && <p className="text-xs text-red-600 mt-1">{formErrores.motivoCambio}</p>}
+            </div>
+            {formErrores.general && <p className="text-xs text-red-600 mt-2">{formErrores.general}</p>}
+          </div>
+          <DialogFooter className="mt-4">
+            <button
+              onClick={() => setShowEstadoModal(false)}
+              disabled={submitting}
+              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleGuardarEstado}
+              disabled={submitting}
+              className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors disabled:opacity-50"
+            >
+              {submitting ? 'Guardando...' : 'Confirmar Cambio'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Agregar Bloqueo */}
+      <Dialog open={showBloqueoModal} onOpenChange={setShowBloqueoModal}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="text-[#0D1B4B]">Agregar Bloqueo</DialogTitle>
+            <DialogDescription>
+              Bloquear monto del saldo disponible de la cuenta
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div>
+              <Label>Monto a Bloquear *</Label>
+              <Input
+                type="number"
+                value={bloqueoFormData.montoBloqueado}
+                onChange={(e) => {
+                  setBloqueoFormData({ ...bloqueoFormData, montoBloqueado: e.target.value });
+                  setFormErrores((prev) => ({ ...prev, montoBloqueado: '' }));
+                }}
+                className={`mt-2 ${formErrores.montoBloqueado ? 'border-red-400' : ''}`}
+                placeholder="0.00"
+                step="0.01"
+                min="0"
+              />
+              {formErrores.montoBloqueado && <p className="text-xs text-red-600 mt-1">{formErrores.montoBloqueado}</p>}
+            </div>
+            <div>
+              <Label>Motivo del Bloqueo *</Label>
+              <select
+                value={bloqueoFormData.motivo}
+                onChange={(e) => {
+                  setBloqueoFormData({ ...bloqueoFormData, motivo: e.target.value as any });
+                  setFormErrores((prev) => ({ ...prev, motivo: '' }));
+                }}
+                className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0D1B4B]/40"
+              >
+                <option value="PREVIO_PAGO">Previo a Pago</option>
+                <option value="JUDICIAL">Judicial</option>
+                <option value="GARANTIA">Garantía</option>
+              </select>
+            </div>
+            <div>
+              <Label>Referencia Externa (Opcional)</Label>
+              <Input
+                value={bloqueoFormData.referenciaExterna}
+                onChange={(e) => {
+                  setBloqueoFormData({ ...bloqueoFormData, referenciaExterna: e.target.value });
+                }}
+                className="mt-2"
+                placeholder="Número de referencia externa"
+              />
+            </div>
+            {formErrores.general && <p className="text-xs text-red-600 mt-2">{formErrores.general}</p>}
+          </div>
+          <DialogFooter className="mt-4">
+            <button
+              onClick={() => setShowBloqueoModal(false)}
+              disabled={submitting}
+              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleGuardarBloqueo}
+              disabled={submitting}
+              className="px-4 py-2 bg-[#C9A84C] text-[#0D1B4B] rounded-lg hover:bg-[#b89640] transition-colors disabled:opacity-50"
+            >
+              {submitting ? 'Guardando...' : 'Crear Bloqueo'}
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

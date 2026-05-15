@@ -3,10 +3,14 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
+import { Input } from '../ui/input';
+import { Label } from '../ui/label';
 import { ClienteService } from '../../services/clienteService';
 import { CuentaService } from '../../services/cuentaService';
 import type { ClienteResponse } from '../../services/clienteService';
 import type { CuentaResponse } from '../../services/cuentaService';
+import type { ClienteRequest } from '../../services/clienteService';
+import { useAuth } from '../../context/AuthContext';
 
 interface ClienteFichaProps {
   navigate: (screen: string, id?: string) => void;
@@ -14,6 +18,7 @@ interface ClienteFichaProps {
 }
 
 export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps) {
+  const { hasRole } = useAuth();
   const [cliente, setCliente] = useState<ClienteResponse | null>(null);
   const [cuentas, setCuentas] = useState<CuentaResponse[]>([]);
   const [loading, setLoading] = useState(true);
@@ -25,6 +30,19 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
   const [showInfoDialog, setShowInfoDialog] = useState(false);
   const [infoMessage, setInfoMessage] = useState('');
   const [infoTitle, setInfoTitle] = useState('');
+
+  // Estado para modal de edición
+  const [showEditModal, setShowEditModal] = useState(false);
+  const [editFormData, setEditFormData] = useState({
+    nombres: '',
+    apellidos: '',
+    razonSocial: '',
+    email: '',
+    telefonoMovil: '',
+    direccion: '',
+  });
+  const [editSubmitting, setEditSubmitting] = useState(false);
+  const [editErrores, setEditErrores] = useState<Record<string, string>>({});
 
   // Buscador de cuentas
   const [busquedaCuenta, setBusquedaCuenta] = useState('');
@@ -75,9 +93,67 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
   };
 
   const handleEditarDatos = () => {
-    setInfoTitle('Información');
-    setInfoMessage('La edición de datos generales no está implementada en el backend actual.');
-    setShowInfoDialog(true);
+    if (!cliente) return;
+    setEditFormData({
+      nombres: cliente.tipoCliente === 'NATURAL' ? cliente.nombreVisual.split(' ').slice(0, -1).join(' ') || '' : '',
+      apellidos: cliente.tipoCliente === 'NATURAL' ? cliente.nombreVisual.split(' ').slice(-1)[0] || '' : '',
+      razonSocial: cliente.tipoCliente === 'JURIDICO' ? cliente.nombreVisual : '',
+      email: cliente.email,
+      telefonoMovil: cliente.telefonoMovil,
+      direccion: '', // Este campo no viene en la respuesta, se dejará vacío por ahora
+    });
+    setEditErrores({});
+    setShowEditModal(true);
+  };
+
+  const handleGuardarEdicion = async () => {
+    if (!cliente) return;
+
+    // Validaciones
+    const nuevosErrores: Record<string, string> = {};
+    if (!editFormData.email.trim()) nuevosErrores.email = 'El correo es obligatorio.';
+    else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editFormData.email.trim())) nuevosErrores.email = 'Ingrese un correo válido.';
+    if (!editFormData.telefonoMovil.trim()) nuevosErrores.telefonoMovil = 'El teléfono es obligatorio.';
+    if (cliente.tipoCliente === 'NATURAL') {
+      if (!editFormData.nombres.trim()) nuevosErrores.nombres = 'Los nombres son obligatorios.';
+      if (!editFormData.apellidos.trim()) nuevosErrores.apellidos = 'Los apellidos son obligatorios.';
+    }
+    if (cliente.tipoCliente === 'JURIDICO') {
+      if (!editFormData.razonSocial.trim()) nuevosErrores.razonSocial = 'La razón social es obligatoria.';
+    }
+
+    if (Object.keys(nuevosErrores).length > 0) {
+      setEditErrores(nuevosErrores);
+      return;
+    }
+
+    setEditSubmitting(true);
+    try {
+      const updateData: Partial<ClienteRequest> = {
+        email: editFormData.email.trim(),
+        telefonoMovil: editFormData.telefonoMovil.trim(),
+      };
+
+      if (cliente.tipoCliente === 'NATURAL') {
+        updateData.nombres = editFormData.nombres.trim();
+        updateData.apellidos = editFormData.apellidos.trim();
+      } else if (cliente.tipoCliente === 'JURIDICO') {
+        updateData.razonSocial = editFormData.razonSocial.trim();
+      }
+
+      const actualizado = await ClienteService.actualizar(cliente.id, updateData);
+      setCliente(actualizado);
+      setShowEditModal(false);
+      setInfoTitle('Éxito');
+      setInfoMessage('Datos del cliente actualizados correctamente.');
+      setShowInfoDialog(true);
+    } catch (err: any) {
+      setInfoTitle('Error');
+      setInfoMessage(err.message || 'Error al actualizar los datos del cliente.');
+      setShowInfoDialog(true);
+    } finally {
+      setEditSubmitting(false);
+    }
   };
 
   if (loading) {
@@ -170,9 +246,11 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
                 </div>
               </div>
               <div className="flex gap-4 mt-6">
-                <button type="button" onClick={handleEditarDatos} className="px-6 py-2 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b]">
-                  Editar Datos
-                </button>
+                {hasRole(['ADMIN_CORE']) && (
+                  <button type="button" onClick={handleEditarDatos} className="px-6 py-2 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b]">
+                    Editar Datos
+                  </button>
+                )}
                 <button type="button" onClick={handleCambiarEstadoClick} className="px-6 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700">
                   Cambiar Estado
                 </button>
@@ -294,6 +372,126 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
               className="px-4 py-2 bg-orange-600 text-white rounded-lg hover:bg-orange-700 transition-colors"
             >
               Confirmar Cambio
+            </button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Diálogo de Edición de Datos */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle className="text-[#0D1B4B]">Editar Datos del Cliente</DialogTitle>
+            <DialogDescription>
+              Modifique los campos necesarios. La identificación no se puede cambiar.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-4">
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Identificación (No editable)</Label>
+                <Input
+                  value={cliente?.identificacion || ''}
+                  disabled
+                  className="mt-2 bg-gray-100"
+                />
+              </div>
+              <div>
+                <Label>Tipo de Cliente</Label>
+                <Input
+                  value={cliente?.tipoCliente || ''}
+                  disabled
+                  className="mt-2 bg-gray-100"
+                />
+              </div>
+            </div>
+
+            {cliente?.tipoCliente === 'NATURAL' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label>Nombres *</Label>
+                  <Input
+                    value={editFormData.nombres}
+                    onChange={(e) => {
+                      setEditFormData({ ...editFormData, nombres: e.target.value });
+                      setEditErrores((prev) => ({ ...prev, nombres: '' }));
+                    }}
+                    className={`mt-2 ${editErrores.nombres ? 'border-red-400' : ''}`}
+                  />
+                  {editErrores.nombres && <p className="text-xs text-red-600 mt-1">{editErrores.nombres}</p>}
+                </div>
+                <div>
+                  <Label>Apellidos *</Label>
+                  <Input
+                    value={editFormData.apellidos}
+                    onChange={(e) => {
+                      setEditFormData({ ...editFormData, apellidos: e.target.value });
+                      setEditErrores((prev) => ({ ...prev, apellidos: '' }));
+                    }}
+                    className={`mt-2 ${editErrores.apellidos ? 'border-red-400' : ''}`}
+                  />
+                  {editErrores.apellidos && <p className="text-xs text-red-600 mt-1">{editErrores.apellidos}</p>}
+                </div>
+              </div>
+            )}
+
+            {cliente?.tipoCliente === 'JURIDICO' && (
+              <div>
+                <Label>Razón Social *</Label>
+                <Input
+                  value={editFormData.razonSocial}
+                  onChange={(e) => {
+                    setEditFormData({ ...editFormData, razonSocial: e.target.value });
+                    setEditErrores((prev) => ({ ...prev, razonSocial: '' }));
+                  }}
+                  className={`mt-2 ${editErrores.razonSocial ? 'border-red-400' : ''}`}
+                />
+                {editErrores.razonSocial && <p className="text-xs text-red-600 mt-1">{editErrores.razonSocial}</p>}
+              </div>
+            )}
+
+            <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label>Correo Electrónico *</Label>
+                <Input
+                  type="email"
+                  value={editFormData.email}
+                  onChange={(e) => {
+                    setEditFormData({ ...editFormData, email: e.target.value });
+                    setEditErrores((prev) => ({ ...prev, email: '' }));
+                  }}
+                  className={`mt-2 ${editErrores.email ? 'border-red-400' : ''}`}
+                />
+                {editErrores.email && <p className="text-xs text-red-600 mt-1">{editErrores.email}</p>}
+              </div>
+              <div>
+                <Label>Teléfono Móvil *</Label>
+                <Input
+                  value={editFormData.telefonoMovil}
+                  onChange={(e) => {
+                    setEditFormData({ ...editFormData, telefonoMovil: e.target.value });
+                    setEditErrores((prev) => ({ ...prev, telefonoMovil: '' }));
+                  }}
+                  className={`mt-2 ${editErrores.telefonoMovil ? 'border-red-400' : ''}`}
+                />
+                {editErrores.telefonoMovil && <p className="text-xs text-red-600 mt-1">{editErrores.telefonoMovil}</p>}
+              </div>
+            </div>
+          </div>
+          <DialogFooter className="mt-4">
+            <button
+              onClick={() => setShowEditModal(false)}
+              disabled={editSubmitting}
+              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors disabled:opacity-50"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={handleGuardarEdicion}
+              disabled={editSubmitting}
+              className="px-4 py-2 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b] transition-colors disabled:opacity-50"
+            >
+              {editSubmitting ? 'Guardando...' : 'Guardar Cambios'}
             </button>
           </DialogFooter>
         </DialogContent>

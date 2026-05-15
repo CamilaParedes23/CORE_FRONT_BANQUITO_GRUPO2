@@ -6,12 +6,14 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { FeriadoService } from '../../services/feriadoService';
 import type { FeriadoResponse } from '../../services/feriadoService';
+import { useAuth } from '../../context/AuthContext';
 
 interface FeriadosCalendarioProps {
   navigate: (screen: string) => void;
 }
 
 export default function FeriadosCalendario({ navigate }: FeriadosCalendarioProps) {
+  const { hasRole } = useAuth();
   const [feriados, setFeriados] = useState<FeriadoResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -74,12 +76,14 @@ export default function FeriadosCalendario({ navigate }: FeriadosCalendarioProps
             <CardTitle className="text-[#0D1B4B]">
               Feriados Configurados {!loading && `(${feriados.length})`}
             </CardTitle>
-            <button
-              onClick={handleAbrirModal}
-              className="px-6 py-2 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b] transition-colors text-sm font-medium"
-            >
-              + Agregar Feriado
-            </button>
+            {hasRole(['ADMIN_CORE']) && (
+              <button
+                onClick={handleAbrirModal}
+                className="px-6 py-2 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b] transition-colors text-sm font-medium"
+              >
+                + Agregar Feriado
+              </button>
+            )}
           </div>
         </CardHeader>
         <CardContent>

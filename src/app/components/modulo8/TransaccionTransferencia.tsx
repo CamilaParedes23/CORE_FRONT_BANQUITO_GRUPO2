@@ -26,7 +26,7 @@ export default function TransaccionTransferencia({ navigate }: TransaccionTransf
     cuentaOrigen: '',
     cuentaDestino: '',
     monto: '',
-    subtipo: 'TRANSFERENCIA_SALIDA',
+    subtipo: 'TRF_INTERNA',
     descripcion: '',
   });
 
@@ -88,7 +88,7 @@ export default function TransaccionTransferencia({ navigate }: TransaccionTransf
         uuid,
       });
 
-      setFormData({ cuentaOrigen: '', cuentaDestino: '', monto: '', subtipo: 'TRANSFERENCIA_SALIDA', descripcion: '' });
+      setFormData({ cuentaOrigen: '', cuentaDestino: '', monto: '', subtipo: 'TRF_INTERNA', descripcion: '' });
     } catch (err: any) {
       setErrorGeneral(
         err?.statusText || err?.message || 'No se pudo ejecutar la transferencia. Verifique las cuentas y el saldo.'
@@ -224,7 +224,9 @@ export default function TransaccionTransferencia({ navigate }: TransaccionTransf
                 onChange={(e) => setFormData({ ...formData, subtipo: e.target.value })}
                 className="w-full mt-2 px-3 py-2 border rounded-lg"
               >
-                <option value="TRANSFERENCIA_SALIDA">Transferencia Interna BanQuito</option>
+                <option value="TRF_INTERNA">Transferencia Interna BanQuito</option>
+                <option value="RET_EFECTIVO">Retiro en Efectivo</option>
+                <option value="COM_MANTENIMIENTO">Cobro de Comisión</option>
               </select>
             </div>
 

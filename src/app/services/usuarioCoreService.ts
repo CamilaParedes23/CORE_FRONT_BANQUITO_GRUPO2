@@ -38,12 +38,12 @@ export interface UsuarioCoreRequest {
 
 export const UsuarioCoreService = {
   /**
-   * GET /api/v1/core/usuarios-core/{username}
+   * GET /api/v1/core/usuarios-core/username/{username}
    * Obtener un usuario core por su username
    * Nota: No existe endpoint de listado, solo consulta individual
    */
   obtenerPorUsername: (username: string) =>
-    get<UsuarioCoreResponse>(`/usuarios-core/${username}`),
+    get<UsuarioCoreResponse>(`/usuarios-core/username/${username}`),
 
   /**
    * POST /api/v1/core/usuarios-core
@@ -53,11 +53,11 @@ export const UsuarioCoreService = {
     post<UsuarioCoreResponse>('/usuarios-core', data),
 
   /**
-   * GET /api/v1/core/usuarios-core/{username}/validacion
+   * GET /api/v1/core/usuarios-core/username/{username}/validacion
    * Validar rol y estado de un usuario
    */
   validar: (username: string, rol: string, estado: string) =>
-    get<boolean>(`/usuarios-core/${username}/validacion`, { rol, estado }),
+    get<boolean>(`/usuarios-core/username/${username}/validacion`, { rol, estado }),
 
   /**
    * GET /api/v1/core/credenciales-web/{username}

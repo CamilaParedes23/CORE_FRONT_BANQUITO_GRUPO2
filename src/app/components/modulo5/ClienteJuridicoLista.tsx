@@ -3,7 +3,7 @@ import { Badge } from '../ui/badge';
 import { ClienteService } from '../../services/clienteService';
 import type { ClienteResponse } from '../../services/clienteService';
 
-interface ClientesListProps {
+interface ClienteJuridicoListaProps {
   navigate: (screen: string, id?: string) => void;
 }
 
@@ -15,8 +15,8 @@ const estadoColor: Record<string, string> = {
 
 const PAGE_SIZE_OPTIONS = [5, 10, 25, 50];
 
-export default function ClientesList({ navigate }: ClientesListProps) {
-  const [filters, setFilters] = useState({ tipo: '', estado: '', pagosMasivos: '', busqueda: '' });
+export default function ClienteJuridicoLista({ navigate }: ClienteJuridicoListaProps) {
+  const [filters, setFilters] = useState({ estado: '', pagosMasivos: '', busqueda: '' });
   const [clientes, setClientes] = useState<ClienteResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -33,7 +33,7 @@ export default function ClientesList({ navigate }: ClientesListProps) {
   useEffect(() => { setPagina(1); }, [filters, porPagina]);
 
   const clientesFiltrados = clientes.filter(c => {
-    if (filters.tipo && c.tipoCliente !== filters.tipo) return false;
+    if (c.tipoCliente !== 'JURIDICO') return false;
     if (filters.estado && c.estado !== filters.estado) return false;
     if (filters.pagosMasivos === 'SI' && !c.activoPagosMasivos) return false;
     if (filters.pagosMasivos === 'NO' && c.activoPagosMasivos) return false;
@@ -52,8 +52,8 @@ export default function ClientesList({ navigate }: ClientesListProps) {
   return (
     <div className="p-8 bg-[#F5F7FA] min-h-full">
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-[#0D1B4B] mb-2">Clientes</h1>
-        <p className="text-gray-600">Gestión de clientes del banco</p>
+        <h1 className="text-3xl font-semibold text-[#0D1B4B] mb-2">Clientes Jurídicos</h1>
+        <p className="text-gray-600">Gestión de empresas y corporativos del banco</p>
       </div>
 
       {error && (
@@ -71,21 +71,9 @@ export default function ClientesList({ navigate }: ClientesListProps) {
               type="text"
               value={filters.busqueda}
               onChange={(e) => setFilters({ ...filters, busqueda: e.target.value })}
-              placeholder="Identificación o nombre..."
+              placeholder="RUC o razón social..."
               className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-[#0D1B4B]/40"
             />
-          </div>
-          <div className="min-w-[130px]">
-            <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
-            <select
-              value={filters.tipo}
-              onChange={(e) => setFilters({ ...filters, tipo: e.target.value })}
-              className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm"
-            >
-              <option value="">Todos</option>
-              <option value="NATURAL">Natural</option>
-              <option value="JURIDICO">Jurídico</option>
-            </select>
           </div>
           <div className="min-w-[130px]">
             <label className="block text-sm font-medium text-gray-700 mb-1">Estado</label>
@@ -115,12 +103,6 @@ export default function ClientesList({ navigate }: ClientesListProps) {
         </div>
         <div className="flex gap-3 mt-4">
           <button
-            onClick={() => navigate('cliente-natural-nuevo')}
-            className="px-5 py-2 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b] text-sm font-medium transition-colors"
-          >
-            + Nuevo Cliente Natural
-          </button>
-          <button
             onClick={() => navigate('cliente-juridico-nuevo')}
             className="px-5 py-2 bg-[#C9A84C] text-[#0D1B4B] rounded-lg hover:bg-[#b89640] text-sm font-medium transition-colors"
           >
@@ -135,9 +117,8 @@ export default function ClientesList({ navigate }: ClientesListProps) {
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50 border-b border-gray-200">
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Identificación</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Tipo</th>
-                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Nombre / Razón Social</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">RUC</th>
+                <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Razón Social</th>
                 <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Estado</th>
                 <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Pagos Masivos</th>
                 <th className="text-left py-3 px-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Acción</th>
@@ -146,11 +127,11 @@ export default function ClientesList({ navigate }: ClientesListProps) {
             <tbody className="divide-y divide-gray-100">
               {loading ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-gray-400 text-sm">Cargando clientes...</td>
+                  <td colSpan={5} className="text-center py-10 text-gray-400 text-sm">Cargando clientes...</td>
                 </tr>
               ) : clientesPagina.length === 0 ? (
                 <tr>
-                  <td colSpan={6} className="text-center py-10 text-gray-400 text-sm">No se encontraron clientes</td>
+                  <td colSpan={5} className="text-center py-10 text-gray-400 text-sm">No se encontraron clientes jurídicos</td>
                 </tr>
               ) : (
                 clientesPagina.map((cliente) => (
@@ -162,11 +143,6 @@ export default function ClientesList({ navigate }: ClientesListProps) {
                     <td className="py-3 px-4 text-sm font-mono font-medium text-gray-800">
                       {cliente.identificacion}
                     </td>
-                    <td className="py-3 px-4 text-sm">
-                      <Badge variant="outline" className="text-xs">
-                        {cliente.tipoCliente}
-                      </Badge>
-                    </td>
                     <td className="py-3 px-4 text-sm text-gray-800">{cliente.nombreVisual}</td>
                     <td className="py-3 px-4 text-sm">
                       <Badge className={estadoColor[String(cliente.estado)] || 'bg-gray-400'}>
@@ -174,13 +150,10 @@ export default function ClientesList({ navigate }: ClientesListProps) {
                       </Badge>
                     </td>
                     <td className="py-3 px-4 text-sm text-center">
-                      {cliente.tipoCliente === 'JURIDICO' ? (
-                        cliente.activoPagosMasivos
-                          ? <span className="text-blue-600 font-medium">✓ Sí</span>
-                          : <span className="text-gray-400">—</span>
-                      ) : (
-                        <span className="text-gray-300">—</span>
-                      )}
+                      {cliente.activoPagosMasivos
+                        ? <span className="text-blue-600 font-medium">✓ Sí</span>
+                        : <span className="text-gray-400">—</span>
+                      }
                     </td>
                     <td className="py-3 px-4 text-sm">
                       <span className="text-[#0D1B4B] hover:underline font-medium">Ver ficha</span>

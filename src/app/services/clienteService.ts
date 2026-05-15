@@ -100,6 +100,13 @@ export const ClienteService = {
     patch<ClienteResponse>(`/clientes/${id}/estado`, { estado }),
 
   /**
+   * PATCH /api/v1/core/clientes/{id}
+   * Actualización de datos del cliente
+   */
+  actualizar: (id: number, data: Partial<ClienteRequest>) =>
+    patch<ClienteResponse>(`/clientes/${id}`, data),
+
+  /**
    * GET /api/v1/core/clientes/ruc/{ruc}/validacion-pagos-masivos
    * Validar empresa para pagos masivos
    */

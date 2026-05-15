@@ -22,6 +22,12 @@ function formatFechaHora(d: Date): string {
   });
 }
 
+// ── Helper: formatear cuenta con asteriscos ──────────────────────────────────
+function formatCuenta(cuenta: string): string {
+  if (!cuenta || cuenta.length <= 4) return cuenta;
+  return '*'.repeat(cuenta.length - 4) + cuenta.slice(-4);
+}
+
 export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) {
   const [formData, setFormData] = useState({
     cuentaOrigen: '',
@@ -37,13 +43,15 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
   const [comprobante, setComprobante] = useState<{
     numero: string;
     fechaHora: string;
-    cuentaDebitada: string;
+    cuentaOrigen: string;
+    cuentaDestino: string;
     monto: number;
     comision: number;
     subtipo: string;
     descripcion: string;
     saldoDisponible: number;
     uuid: string;
+    nombreBeneficiario?: string;
   } | null>(null);
 
   // ── Validaciones ────────────────────────────────────────────────────────────
@@ -83,13 +91,15 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
       setComprobante({
         numero: generarNumComprobante(uuid),
         fechaHora: formatFechaHora(new Date()),
-        cuentaDebitada: snapshotFormData.cuentaOrigen.trim(),
+        cuentaOrigen: snapshotFormData.cuentaOrigen.trim(),
+        cuentaDestino: snapshotFormData.cuentaDestino.trim(),
         monto: Number(snapshotFormData.monto),
         comision: 0, // Se actualizará cuando el backend proporcione este valor
         subtipo: snapshotFormData.subtipo,
         descripcion: snapshotFormData.descripcion.trim(),
         saldoDisponible: Number(resp.saldoDisponibleOrigen),
         uuid,
+        nombreBeneficiario: 'Cliente Beneficiario', // Se actualizará cuando el backend proporcione este valor
       });
 
       setFormData({ cuentaOrigen: '', cuentaDestino: '', subtipo: 'RETIRO_CAJERO', monto: '', descripcion: '' });
@@ -127,36 +137,57 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
             <div className="bg-red-50 border-b border-red-100 px-6 py-4 text-center">
               <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">N° Comprobante</p>
               <p className="text-2xl font-bold text-red-700 font-mono">{comprobante.numero}</p>
-              <p className="text-xs text-gray-400 mt-1">{comprobante.fechaHora}</p>
             </div>
 
             {/* Detalle */}
-            <div className="px-6 py-4 space-y-3">
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Tipo</span>
-                <span className="font-medium text-gray-800">{comprobante.subtipo.replace(/_/g, ' ')}</span>
-              </div>
-              <div className="flex justify-between text-sm">
-                <span className="text-gray-500">Cuenta Debitada</span>
-                <span className="font-mono font-medium text-gray-800">{comprobante.cuentaDebitada}</span>
-              </div>
-              {comprobante.descripcion && (
+            <div className="px-6 py-4 space-y-4">
+              <h3 className="text-lg font-semibold text-[#0D1B4B] border-b border-gray-200 pb-2">Detalle</h3>
+
+              <div className="space-y-3">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-500">Descripción</span>
-                  <span className="font-medium text-gray-800 text-right max-w-[55%]">{comprobante.descripcion}</span>
+                  <span className="text-gray-600 font-medium">Tipo</span>
+                  <span className="font-medium text-gray-800">{comprobante.subtipo.replace(/_/g, ' ')}</span>
                 </div>
-              )}
-              <div className="border-t pt-3 flex justify-between items-center">
-                <span className="text-gray-600 font-medium">Monto Debitado</span>
-                <span className="text-2xl font-bold text-red-600">- ${comprobante.monto.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
-                <span className="text-gray-500">Comisión</span>
-                <span className="font-semibold text-gray-700">${comprobante.comision.toFixed(2)}</span>
-              </div>
-              <div className="flex justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
-                <span className="text-gray-500">Saldo disponible</span>
-                <span className="font-semibold text-gray-700">${comprobante.saldoDisponible.toFixed(2)}</span>
+
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 font-medium">Cuenta de origen</span>
+                  <span className="font-mono font-semibold text-gray-800">{formatCuenta(comprobante.cuentaOrigen)}</span>
+                </div>
+
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 font-medium">Cuenta acreditada</span>
+                  <span className="font-mono font-semibold text-gray-800">{formatCuenta(comprobante.cuentaDestino)}</span>
+                </div>
+
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 font-medium">Fecha</span>
+                  <span className="font-medium text-gray-800">{comprobante.fechaHora}</span>
+                </div>
+
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 font-medium">Nombre del beneficiario</span>
+                  <span className="font-medium text-gray-800 text-right max-w-[55%]">{comprobante.nombreBeneficiario || 'N/A'}</span>
+                </div>
+
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 font-medium">Monto</span>
+                  <span className="text-xl font-bold text-[#0D1B4B]">$ {comprobante.monto.toFixed(2)}</span>
+                </div>
+
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 font-medium">Comisión</span>
+                  <span className="font-semibold text-gray-700">$ {comprobante.comision.toFixed(2)}</span>
+                </div>
+
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 font-medium">Concepto</span>
+                  <span className="font-medium text-gray-800 text-right max-w-[55%]">{comprobante.descripcion || comprobante.subtipo.replace(/_/g, ' ')}</span>
+                </div>
+
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600 font-medium">Número de documento</span>
+                  <span className="font-mono font-semibold text-gray-800">{comprobante.numero}</span>
+                </div>
               </div>
             </div>
 

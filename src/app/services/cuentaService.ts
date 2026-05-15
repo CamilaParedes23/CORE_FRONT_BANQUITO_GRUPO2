@@ -54,9 +54,9 @@ export interface SaldoResponse {
  * Coincide con: com.banquito.core.accounts.dto.api.CambiarEstadoCuentaRequest
  */
 export interface CambioEstadoData {
-  estadoNuevo: 'ACTIVA' | 'INACTIVA' | 'BLOQUEADA' | 'SUSPENDIDA';
-  motivo: string;
-  usuarioId: number;
+  nuevoEstado: 'ACTIVA' | 'INACTIVA' | 'BLOQUEADA' | 'SUSPENDIDA';
+  motivoCambio: string;
+  usuarioCoreId: number;
 }
 
 /**
@@ -64,9 +64,10 @@ export interface CambioEstadoData {
  * Coincide con: com.banquito.core.accounts.dto.api.BloquearCuentaRequest
  */
 export interface BloqueoData {
-  monto: number;
+  montoBloqueado: number;
   motivo: 'JUDICIAL' | 'PREVIO_PAGO' | 'GARANTIA';
   referenciaExterna?: string;
+  usuarioCoreId: number;
 }
 
 /**
