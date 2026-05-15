@@ -34,20 +34,27 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     const storedUser = localStorage.getItem('banquito_user');
 
     if (storedToken && storedUser) {
-      setToken(storedToken);
-      setUser(JSON.parse(storedUser));
+      try {
+        setToken(storedToken);
+        setUser(JSON.parse(storedUser));
+      } catch (e) {
+        console.error('Error parsing stored user:', e);
+        localStorage.removeItem('banquito_token');
+        localStorage.removeItem('banquito_user');
+      }
     }
   }, []);
 
   const login = async (usuario: string, password: string) => {
     if (config.mockAuthEnabled) {
-      // Usuarios mock para probar todos los roles
+      // Usuarios mock alineados con seed BD (banquito_core_seed_funcional_v3.sql)
       const MOCK_USERS: Record<string, { nombreCompleto: string; rol: UserRole; sucursal: { id: string; nombre: string } }> = {
-        admin:      { nombreCompleto: 'Administrador Core',        rol: 'ADMIN_CORE',          sucursal: { id: 'SUC-001', nombre: 'Matriz Quito' } },
-        cajero:     { nombreCompleto: 'Carlos Mejía (Cajero)',     rol: 'CAJERO',              sucursal: { id: 'SUC-001', nombre: 'Matriz Quito' } },
-        operador:   { nombreCompleto: 'Laura Vega (Operador)',     rol: 'OPERADOR',            sucursal: { id: 'SUC-002', nombre: 'Sucursal Norte' } },
-        supervisor: { nombreCompleto: 'Marco Torres (Supervisor)', rol: 'SUPERVISOR_AGENCIA',  sucursal: { id: 'SUC-002', nombre: 'Sucursal Norte' } },
-        auditor:    { nombreCompleto: 'Diana Ruiz (Auditor)',      rol: 'AUDITOR',             sucursal: { id: 'SUC-001', nombre: 'Matriz Quito' } },
+        'admin':          { nombreCompleto: 'Administrador General Core BanQuito', rol: 'ADMIN_CORE',         sucursal: { id: '1', nombre: 'Sucursal Quito Norte' } },
+        'cajero.norte':   { nombreCompleto: 'Carolina Andrade - Cajera Norte',     rol: 'CAJERO',             sucursal: { id: '1', nombre: 'Sucursal Quito Norte' } },
+        'supervisor.sur': { nombreCompleto: 'Miguel Cevallos - Supervisor Sur',    rol: 'SUPERVISOR_AGENCIA', sucursal: { id: '2', nombre: 'Sucursal Quito Sur' } },
+        'auditor.core':   { nombreCompleto: 'Valeria Morales - Auditoria Core',    rol: 'AUDITOR',            sucursal: { id: '1', nombre: 'Sucursal Quito Norte' } },
+        // OPERADOR no existe en la BD actual — usuario de prueba adicional
+        'operador':       { nombreCompleto: 'Operador de Prueba',                  rol: 'OPERADOR',           sucursal: { id: '3', nombre: 'Sucursal Quito Centro' } },
       };
 
       const key = usuario.toLowerCase().trim();
@@ -75,7 +82,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       const response = await fetch(`${config.apiBaseUrl}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuario, password }),
+        body: JSON.stringify({ usuario, contrasena: password }),
       });
 
       if (!response.ok) {
@@ -84,11 +91,23 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const data = await response.json();
 
-      localStorage.setItem('banquito_token', data.token);
-      localStorage.setItem('banquito_user', JSON.stringify(data.usuario));
+      // El backend devuelve ApiResponse<LoginResponse>, necesitamos extraer los datos
+      const loginData = data.data || data;
+      
+      const mockToken = `jwt_real_${Date.now()}`;
+      const mockUser: User = {
+        id: String(loginData.usuarioCoreId),
+        nombreCompleto: loginData.nombre,
+        usuario: loginData.usuario,
+        rol: loginData.rol as UserRole,
+        sucursal: undefined, // El backend no devuelve sucursal en LoginResponse
+      };
 
-      setToken(data.token);
-      setUser(data.usuario);
+      localStorage.setItem('banquito_token', mockToken);
+      localStorage.setItem('banquito_user', JSON.stringify(mockUser));
+
+      setToken(mockToken);
+      setUser(mockUser);
     }
   };
 

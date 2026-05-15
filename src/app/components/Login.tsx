@@ -85,30 +85,32 @@ export default function Login() {
             </button>
 
             <div className="mt-6 p-4 bg-[#0D1B4B]/5 border border-[#0D1B4B]/20 rounded-lg">
-              <p className="text-xs font-semibold text-[#0D1B4B] mb-3">🔑 Usuarios de prueba (modo demo) — contraseña: cualquiera</p>
+              <p className="text-xs font-semibold text-[#0D1B4B] mb-3">🔑 Usuarios del sistema (seed BD v3)</p>
               <table className="w-full text-xs">
                 <thead>
                   <tr className="border-b border-[#0D1B4B]/10">
                     <th className="text-left pb-1 text-gray-500 font-medium">Usuario</th>
                     <th className="text-left pb-1 text-gray-500 font-medium">Rol</th>
+                    <th className="text-left pb-1 text-gray-500 font-medium">Contraseña</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-gray-100">
                   {[
-                    { u: 'admin',      r: 'ADMIN_CORE' },
-                    { u: 'cajero',     r: 'CAJERO' },
-                    { u: 'operador',   r: 'OPERADOR' },
-                    { u: 'supervisor', r: 'SUPERVISOR_AGENCIA' },
-                    { u: 'auditor',    r: 'AUDITOR' },
-                  ].map(({ u, r }) => (
-                    <tr key={u} className="hover:bg-[#0D1B4B]/5 cursor-pointer" onClick={() => setFormData({ usuario: u, password: '1234' })}>
+                    { u: 'admin',          r: 'ADMIN_CORE',         p: 'Banquito123*', bd: true },
+                    { u: 'cajero.norte',   r: 'CAJERO',             p: 'Banquito123*', bd: true },
+                    { u: 'supervisor.sur', r: 'SUPERVISOR_AGENCIA', p: 'Banquito123*', bd: true },
+                    { u: 'auditor.core',   r: 'AUDITOR',            p: 'Banquito123*', bd: true },
+                    { u: 'operador',       r: 'OPERADOR',           p: 'cualquiera',   bd: false },
+                  ].map(({ u, r, p, bd }) => (
+                    <tr key={u} className="hover:bg-[#0D1B4B]/5 cursor-pointer" onClick={() => setFormData({ usuario: u, password: p })}>
                       <td className="py-1 font-mono text-[#0D1B4B] font-semibold">{u}</td>
                       <td className="py-1 text-gray-600">{r}</td>
+                      <td className="py-1 text-gray-400">{bd ? <span className="text-green-600 font-medium">{p}</span> : <span className="text-orange-500 italic">{p}</span>}</td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              <p className="text-xs text-gray-400 mt-2">💡 Haz clic en una fila para auto-completar</p>
+              <p className="text-xs text-gray-400 mt-2">💡 Clic en una fila para auto-completar · 🟢 en BD real · 🟠 solo mock</p>
             </div>
           </form>
         </CardContent>

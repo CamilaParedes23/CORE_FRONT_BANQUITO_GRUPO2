@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
@@ -6,6 +6,8 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { UsuarioCoreService } from '../../services/usuarioCoreService';
 import type { UsuarioCoreResponse } from '../../services/usuarioCoreService';
+import { SucursalService } from '../../services/sucursalService';
+import type { SucursalResponse } from '../../services/sucursalService';
 
 interface UsuariosCoreListProps {
   navigate: (screen: string) => void;
@@ -20,9 +22,11 @@ export default function UsuariosCoreList({ navigate }: UsuariosCoreListProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
-  // Modal crear usuario
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [creando, setCreando] = useState(false);
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [createSuccess, setCreateSuccess] = useState<string | null>(null);
+  const [credencialesCreadas, setCredencialesCreadas] = useState<{ usuario: string; password: string } | null>(null);
   const [formData, setFormData] = useState({
     nombreCompleto: '',
     usuario: '',
@@ -32,6 +36,33 @@ export default function UsuariosCoreList({ navigate }: UsuariosCoreListProps) {
     sucursalId: '',
   });
   const [formErrores, setFormErrores] = useState<Record<string, string>>({});
+  
+  // Sucursales
+  const [sucursales, setSucursales] = useState<SucursalResponse[]>([]);
+  const [cargandoSucursales, setCargandoSucursales] = useState(false);
+
+  // Cargar sucursales al montar el componente
+  useEffect(() => {
+    const cargarSucursales = async () => {
+      setCargandoSucursales(true);
+      try {
+        const data = await SucursalService.listarActivas();
+        setSucursales(data);
+      } catch (err) {
+        console.error('Error al cargar sucursales:', err);
+      } finally {
+        setCargandoSucursales(false);
+      }
+    };
+    cargarSucursales();
+  }, []);
+
+  // Helper para obtener nombre de sucursal por ID
+  const getNombreSucursal = (sucursalId?: number): string => {
+    if (!sucursalId) return '—';
+    const sucursal = sucursales.find(s => s.id === sucursalId);
+    return sucursal ? sucursal.nombre : '—';
+  };
 
   const handleBuscar = async () => {
     if (!usernameBuscado.trim()) {
@@ -68,15 +99,36 @@ export default function UsuariosCoreList({ navigate }: UsuariosCoreListProps) {
     return Object.keys(errs).length === 0;
   };
 
-  const handleGuardar = () => {
+  const handleGuardar = async () => {
     if (!validarForm()) return;
-    setShowCreateModal(false);
-    setShowInfoModal(true);
+    setCreando(true);
+    setCreateError(null);
+    setCreateSuccess(null);
+    try {
+      const nuevo = await UsuarioCoreService.crear({
+        usuario: formData.usuario.trim(),
+        contrasena: formData.password,
+        nombreCompleto: formData.nombreCompleto.trim(),
+        rol: formData.rol,
+        sucursalId: formData.sucursalId ? Number(formData.sucursalId) : null,
+      });
+      setCredencialesCreadas({ usuario: formData.usuario.trim(), password: formData.password });
+      setCreateSuccess(`Usuario "${nuevo.usuario}" creado exitosamente con rol ${nuevo.rol}.`);
+      setShowCreateModal(false);
+      setFormData({ nombreCompleto: '', usuario: '', password: '', confirmPassword: '', rol: 'CAJERO', sucursalId: '' });
+    } catch (err: any) {
+      setCreateError(err?.message || 'Error al crear el usuario. Verifique los datos e intente de nuevo.');
+    } finally {
+      setCreando(false);
+    }
   };
 
   const handleAbrirModal = () => {
     setFormData({ nombreCompleto: '', usuario: '', password: '', confirmPassword: '', rol: 'CAJERO', sucursalId: '' });
     setFormErrores({});
+    setCreateError(null);
+    setCreateSuccess(null);
+    setCredencialesCreadas(null);
     setShowCreateModal(true);
   };
 
@@ -90,6 +142,24 @@ export default function UsuariosCoreList({ navigate }: UsuariosCoreListProps) {
       {error && (
         <div className="mb-4 p-3 bg-red-50 border border-red-300 rounded-lg text-sm text-red-800">
           ⚠️ {error}
+        </div>
+      )}
+
+      {createSuccess && credencialesCreadas && (
+        <div className="mb-4 p-4 bg-green-50 border border-green-300 rounded-lg text-sm text-green-800">
+          <div className="font-semibold mb-2">✅ {createSuccess}</div>
+          <div className="bg-white p-3 rounded border border-green-200 mt-2">
+            <div className="text-xs text-gray-500 mb-1">Credenciales de acceso (guárdalas):</div>
+            <div className="font-mono text-sm">
+              <div><strong>Usuario:</strong> {credencialesCreadas.usuario}</div>
+              <div><strong>Contraseña:</strong> {credencialesCreadas.password}</div>
+            </div>
+          </div>
+        </div>
+      )}
+      {createSuccess && !credencialesCreadas && (
+        <div className="mb-4 p-3 bg-green-50 border border-green-300 rounded-lg text-sm text-green-800">
+          ✅ {createSuccess}
         </div>
       )}
 
@@ -157,7 +227,7 @@ export default function UsuariosCoreList({ navigate }: UsuariosCoreListProps) {
                     <td className="py-3 px-4 text-sm">
                       <Badge variant="outline" className="text-xs">{u.rol}</Badge>
                     </td>
-                    <td className="py-3 px-4 text-sm text-gray-600">{u.sucursalId || '—'}</td>
+                    <td className="py-3 px-4 text-sm text-gray-600">{getNombreSucursal(u.sucursalId)}</td>
                     <td className="py-3 px-4 text-sm">
                       <Badge className={String(u.estado) === 'ACTIVO' ? 'bg-green-600' : 'bg-red-600'}>
                         {String(u.estado)}
@@ -173,10 +243,6 @@ export default function UsuariosCoreList({ navigate }: UsuariosCoreListProps) {
           </div>
         </CardContent>
       </Card>
-
-      <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg text-xs text-blue-700">
-        ℹ️ La búsqueda es individual por username (limitación del backend). No existe listado general.
-      </div>
 
       {/* Modal Crear Usuario */}
       <Dialog open={showCreateModal} onOpenChange={setShowCreateModal}>
@@ -275,60 +341,51 @@ export default function UsuariosCoreList({ navigate }: UsuariosCoreListProps) {
 
             {/* Sucursal */}
             <div>
-              <Label>ID Sucursal <span className="text-gray-400 text-xs">(opcional)</span></Label>
-              <Input
-                type="number"
-                value={formData.sucursalId}
-                onChange={(e) => setFormData({ ...formData, sucursalId: e.target.value })}
-                placeholder="Ej: 1"
-                className="mt-2"
-              />
+              <Label>Sucursal <span className="text-gray-400 text-xs">(opcional)</span></Label>
+              {cargandoSucursales ? (
+                <div className="mt-2 text-sm text-gray-500">Cargando sucursales...</div>
+              ) : (
+                <select
+                  value={formData.sucursalId}
+                  onChange={(e) => setFormData({ ...formData, sucursalId: e.target.value })}
+                  className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg text-sm"
+                >
+                  <option value="">Sin sucursal asignada</option>
+                  {sucursales.map(s => (
+                    <option key={s.id} value={String(s.id)}>
+                      {s.nombre} - {s.ciudad}
+                    </option>
+                  ))}
+                </select>
+              )}
             </div>
           </div>
 
           <DialogFooter className="mt-4 gap-2">
             <button
               onClick={() => setShowCreateModal(false)}
-              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors text-sm"
+              disabled={creando}
+              className="px-4 py-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300 transition-colors text-sm disabled:opacity-50"
             >
               Cancelar
             </button>
             <button
               onClick={handleGuardar}
-              className="px-4 py-2 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b] transition-colors text-sm"
+              disabled={creando}
+              className="px-4 py-2 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b] transition-colors text-sm disabled:opacity-50"
             >
-              Crear Usuario
+              {creando ? 'Creando...' : 'Crear Usuario'}
             </button>
           </DialogFooter>
+
+          {createError && (
+            <div className="mt-3 p-3 bg-red-50 border border-red-200 rounded-lg text-xs text-red-800">
+              ⚠️ {createError}
+            </div>
+          )}
         </DialogContent>
       </Dialog>
 
-      {/* Modal Info (backend sin endpoint POST) */}
-      <Dialog open={showInfoModal} onOpenChange={setShowInfoModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="text-amber-600">⚠️ Función no disponible en backend</DialogTitle>
-            <DialogDescription>
-              El backend actual no expone un endpoint <code className="bg-gray-100 px-1 rounded">POST /usuarios-core</code>. Para crear usuarios, inserte el registro directamente en la tabla <code className="bg-gray-100 px-1 rounded">USUARIO_CORE</code> de la base de datos MariaDB.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="my-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800 space-y-1">
-            <p className="font-medium mb-1">Datos listos para insertar:</p>
-            <p>👤 Nombre: <strong>{formData.nombreCompleto}</strong></p>
-            <p>🔑 Usuario: <strong>{formData.usuario}</strong></p>
-            <p>🎭 Rol: <strong>{formData.rol}</strong></p>
-            {formData.sucursalId && <p>🏦 Sucursal ID: <strong>{formData.sucursalId}</strong></p>}
-          </div>
-          <DialogFooter>
-            <button
-              onClick={() => setShowInfoModal(false)}
-              className="px-4 py-2 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b] transition-colors text-sm"
-            >
-              Entendido
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
     </div>
   );
 }

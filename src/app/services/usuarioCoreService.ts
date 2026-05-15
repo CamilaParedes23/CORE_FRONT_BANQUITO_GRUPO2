@@ -4,7 +4,7 @@
 // Nota: El backend NO tiene endpoint de listado general, solo consulta individual
 // ============================================================================
 
-import { get } from './apiClient';
+import { get, post } from './apiClient';
 
 // --- Tipos alineados con los DTOs del backend ---
 
@@ -21,10 +21,17 @@ export interface UsuarioCoreResponse {
 }
 
 export interface CredencialWebResponse {
-  // Campos según el DTO del backend
   id: number;
   username: string;
   estado: string;
+}
+
+export interface UsuarioCoreRequest {
+  usuario: string;
+  contrasena: string;
+  nombreCompleto: string;
+  rol: string;
+  sucursalId?: number | null;
 }
 
 // --- Servicio ---
@@ -37,6 +44,13 @@ export const UsuarioCoreService = {
    */
   obtenerPorUsername: (username: string) =>
     get<UsuarioCoreResponse>(`/usuarios-core/${username}`),
+
+  /**
+   * POST /api/v1/core/usuarios-core
+   * Crear un nuevo usuario core
+   */
+  crear: (data: UsuarioCoreRequest) =>
+    post<UsuarioCoreResponse>('/usuarios-core', data),
 
   /**
    * GET /api/v1/core/usuarios-core/{username}/validacion

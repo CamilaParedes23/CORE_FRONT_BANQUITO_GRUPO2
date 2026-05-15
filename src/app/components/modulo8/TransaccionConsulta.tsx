@@ -28,7 +28,7 @@ export default function TransaccionConsulta({ navigate }: TransaccionConsultaPro
       setResultado(txn);
     } catch (err: any) {
       if (err?.status === 404) {
-        setError('No se encontró una transacción con ese UUID.');
+        setError('No se encontró una transacción con ese número de comprobante.');
       } else {
         setError(err?.message || 'Error al consultar la transacción.');
       }
@@ -41,7 +41,7 @@ export default function TransaccionConsulta({ navigate }: TransaccionConsultaPro
     <div className="p-8 bg-[#F5F7FA] min-h-full">
       <div className="mb-8">
         <h1 className="text-3xl font-semibold text-[#0D1B4B] mb-2">Consultar Transacción</h1>
-        <p className="text-gray-600">Busque una transacción por su UUID</p>
+        <p className="text-gray-600">Busque una transacción por su número de comprobante</p>
       </div>
 
       <Card className="max-w-4xl">
@@ -54,7 +54,7 @@ export default function TransaccionConsulta({ navigate }: TransaccionConsultaPro
         <CardContent>
           <div className="space-y-4">
             <div>
-              <Label>UUID de Transacción</Label>
+              <Label>Número de Comprobante</Label>
               <Input
                 value={uuid}
                 onChange={(e) => {
@@ -62,7 +62,7 @@ export default function TransaccionConsulta({ navigate }: TransaccionConsultaPro
                   setError(null);
                   setResultado(null);
                 }}
-                placeholder="Ej: 550e8400-e29b-41d4-a716-446655440000"
+                placeholder="Ej: TRF-A7F2C9E1"
                 className="mt-2 font-mono text-sm"
                 onKeyDown={(e) => e.key === 'Enter' && handleBuscar()}
               />

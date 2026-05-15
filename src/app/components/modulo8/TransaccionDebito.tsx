@@ -9,11 +9,24 @@ interface TransaccionDebitoProps {
   navigate: (screen: string) => void;
 }
 
+// ── Helper: número de comprobante corto ──────────────────────────────────────
+function generarNumComprobante(uuid: string): string {
+  const raw = uuid?.replace(/-/g, '') ?? '';
+  return `DEB-${raw.slice(-8).toUpperCase()}`;
+}
+
+function formatFechaHora(d: Date): string {
+  return d.toLocaleString('es-EC', {
+    year: 'numeric', month: '2-digit', day: '2-digit',
+    hour: '2-digit', minute: '2-digit', second: '2-digit',
+  });
+}
+
 export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) {
   const [formData, setFormData] = useState({
     cuentaOrigen: '',
     cuentaDestino: '',
-    subtipo: 'RETIRO_CAJERO',
+    subtipo: 'RET_EFECTIVO',
     monto: '',
     descripcion: '',
   });
@@ -21,47 +34,40 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
   const [ejecutando, setEjecutando] = useState(false);
   const [errores, setErrores] = useState<Record<string, string>>({});
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
-  const [resultado, setResultado] = useState<{
-    estado: string;
-    uuidDebito: string;
+  const [comprobante, setComprobante] = useState<{
+    numero: string;
+    fechaHora: string;
+    cuentaDebitada: string;
+    monto: number;
+    subtipo: string;
+    descripcion: string;
     saldoDisponible: number;
+    uuid: string;
   } | null>(null);
 
-  // ── Validaciones ──────────────────────────────────────────────────────────
-
+  // ── Validaciones ────────────────────────────────────────────────────────────
   const validar = (): boolean => {
     const nuevos: Record<string, string> = {};
-
-    if (!formData.cuentaOrigen.trim()) {
-      nuevos.cuentaOrigen = 'La cuenta a debitar es obligatoria.';
-    }
-    if (!formData.cuentaDestino.trim()) {
-      nuevos.cuentaDestino = 'La cuenta destino es obligatoria.';
-    }
-    if (formData.cuentaOrigen.trim() === formData.cuentaDestino.trim() && formData.cuentaOrigen.trim()) {
+    if (!formData.cuentaOrigen.trim()) nuevos.cuentaOrigen = 'La cuenta a debitar es obligatoria.';
+    if (!formData.cuentaDestino.trim()) nuevos.cuentaDestino = 'La cuenta destino es obligatoria.';
+    if (formData.cuentaOrigen.trim() === formData.cuentaDestino.trim() && formData.cuentaOrigen.trim())
       nuevos.cuentaDestino = 'La cuenta destino no puede ser la misma que la cuenta origen.';
-    }
-    if (!formData.monto.trim() || isNaN(Number(formData.monto)) || Number(formData.monto) <= 0) {
+    if (!formData.monto.trim() || isNaN(Number(formData.monto)) || Number(formData.monto) <= 0)
       nuevos.monto = 'Ingrese un monto válido mayor a 0.';
-    }
-    if (!formData.subtipo) {
-      nuevos.subtipo = 'Seleccione el subtipo de transacción.';
-    }
-
+    if (!formData.subtipo) nuevos.subtipo = 'Seleccione el subtipo de transacción.';
     setErrores(nuevos);
     return Object.keys(nuevos).length === 0;
   };
 
-  // ── Submit ────────────────────────────────────────────────────────────────
-
+  // ── Submit ──────────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorGeneral(null);
-    setResultado(null);
-
+    setComprobante(null);
     if (!validar()) return;
 
     setEjecutando(true);
+    const snapshotFormData = { ...formData };
     try {
       const resp = await TransaccionService.transferir({
         uuidOperacion: generarUuidTransaccion() as any,
@@ -72,13 +78,18 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
         descripcion: formData.descripcion.trim() || undefined,
       });
 
-      setResultado({
-        estado: resp.estado,
-        uuidDebito: String(resp.uuidDebitoCore),
+      const uuid = String(resp.uuidDebitoCore);
+      setComprobante({
+        numero: generarNumComprobante(uuid),
+        fechaHora: formatFechaHora(new Date()),
+        cuentaDebitada: snapshotFormData.cuentaOrigen.trim(),
+        monto: Number(snapshotFormData.monto),
+        subtipo: snapshotFormData.subtipo,
+        descripcion: snapshotFormData.descripcion.trim(),
         saldoDisponible: Number(resp.saldoDisponibleOrigen),
+        uuid,
       });
 
-      // Limpiar formulario tras éxito
       setFormData({ cuentaOrigen: '', cuentaDestino: '', subtipo: 'RETIRO_CAJERO', monto: '', descripcion: '' });
     } catch (err: any) {
       setErrorGeneral(
@@ -89,14 +100,79 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
     }
   };
 
-  // ── Render ────────────────────────────────────────────────────────────────
-
+  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="p-8 bg-[#F5F7FA] min-h-full">
       <div className="mb-8">
         <h1 className="text-3xl font-semibold text-[#0D1B4B] mb-2">Débito Manual</h1>
         <p className="text-gray-600">Ejecutar un débito (retiro) en una cuenta</p>
       </div>
+
+      {/* ── MODAL COMPROBANTE ── */}
+      {comprobante && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
+            {/* Cabecera */}
+            <div className="bg-[#0D1B4B] px-6 py-5 text-center">
+              <div className="w-14 h-14 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-3">
+                <span className="text-3xl">🏦</span>
+              </div>
+              <h2 className="text-white text-xl font-bold">BanQuito</h2>
+              <p className="text-blue-200 text-sm">Comprobante de Débito</p>
+            </div>
+
+            {/* Número de comprobante destacado */}
+            <div className="bg-red-50 border-b border-red-100 px-6 py-4 text-center">
+              <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">N° Comprobante</p>
+              <p className="text-2xl font-bold text-red-700 font-mono">{comprobante.numero}</p>
+              <p className="text-xs text-gray-400 mt-1">{comprobante.fechaHora}</p>
+            </div>
+
+            {/* Detalle */}
+            <div className="px-6 py-4 space-y-3">
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Tipo</span>
+                <span className="font-medium text-gray-800">{comprobante.subtipo.replace(/_/g, ' ')}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-gray-500">Cuenta Debitada</span>
+                <span className="font-mono font-medium text-gray-800">{comprobante.cuentaDebitada}</span>
+              </div>
+              {comprobante.descripcion && (
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-500">Descripción</span>
+                  <span className="font-medium text-gray-800 text-right max-w-[55%]">{comprobante.descripcion}</span>
+                </div>
+              )}
+              <div className="border-t pt-3 flex justify-between items-center">
+                <span className="text-gray-600 font-medium">Monto Debitado</span>
+                <span className="text-2xl font-bold text-red-600">- ${comprobante.monto.toFixed(2)}</span>
+              </div>
+              <div className="flex justify-between text-sm bg-gray-50 rounded-lg px-3 py-2">
+                <span className="text-gray-500">Saldo disponible</span>
+                <span className="font-semibold text-gray-700">${comprobante.saldoDisponible.toFixed(2)}</span>
+              </div>
+              <p className="text-xs text-gray-300 text-center font-mono break-all">{comprobante.uuid}</p>
+            </div>
+
+            {/* Acciones */}
+            <div className="px-6 pb-6 flex gap-3">
+              <button
+                onClick={() => setComprobante(null)}
+                className="flex-1 py-2.5 border-2 border-[#0D1B4B] text-[#0D1B4B] rounded-lg font-semibold hover:bg-[#0D1B4B]/5 transition-colors"
+              >
+                Nueva Operación
+              </button>
+              <button
+                onClick={() => navigate('dashboard')}
+                className="flex-1 py-2.5 bg-[#0D1B4B] text-white rounded-lg font-semibold hover:bg-[#1a2d6b] transition-colors"
+              >
+                Ir al Dashboard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <Card className="max-w-4xl">
         <CardHeader>
@@ -110,17 +186,6 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
             </AlertDescription>
           </Alert>
 
-          {resultado && (
-            <div className="mb-6 p-4 bg-green-50 border border-green-200 rounded-lg">
-              <p className="text-sm font-semibold text-green-800 mb-2">✅ Débito ejecutado exitosamente</p>
-              <div className="space-y-1 text-sm text-green-700">
-                <p><span className="font-medium">Estado:</span> {resultado.estado}</p>
-                <p><span className="font-medium">UUID Débito:</span> <span className="font-mono text-xs">{resultado.uuidDebito}</span></p>
-                <p><span className="font-medium">Saldo disponible origen:</span> ${resultado.saldoDisponible.toFixed(2)}</p>
-              </div>
-            </div>
-          )}
-
           {errorGeneral && (
             <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
               ⚠️ {errorGeneral}
@@ -132,11 +197,8 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
               <Label>Cuenta a Debitar (Origen) *</Label>
               <Input
                 value={formData.cuentaOrigen}
-                onChange={(e) => {
-                  setFormData({ ...formData, cuentaOrigen: e.target.value });
-                  setErrores((prev) => ({ ...prev, cuentaOrigen: '' }));
-                }}
-                placeholder="Ej: BQCENTRO000001001"
+                onChange={(e) => { setFormData({ ...formData, cuentaOrigen: e.target.value }); setErrores((p) => ({ ...p, cuentaOrigen: '' })); }}
+                placeholder="Ej: 0010000000001"
                 className={`mt-2 ${errores.cuentaOrigen ? 'border-red-400' : ''}`}
               />
               {errores.cuentaOrigen && <p className="text-xs text-red-600 mt-1">{errores.cuentaOrigen}</p>}
@@ -146,10 +208,7 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
               <Label>Cuenta Receptora (Destino) *</Label>
               <Input
                 value={formData.cuentaDestino}
-                onChange={(e) => {
-                  setFormData({ ...formData, cuentaDestino: e.target.value });
-                  setErrores((prev) => ({ ...prev, cuentaDestino: '' }));
-                }}
+                onChange={(e) => { setFormData({ ...formData, cuentaDestino: e.target.value }); setErrores((p) => ({ ...p, cuentaDestino: '' })); }}
                 placeholder="Número de cuenta destino activa"
                 className={`mt-2 ${errores.cuentaDestino ? 'border-red-400' : ''}`}
               />
@@ -160,13 +219,10 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
               <Label>Subtipo de Transacción *</Label>
               <select
                 value={formData.subtipo}
-                onChange={(e) => {
-                  setFormData({ ...formData, subtipo: e.target.value });
-                  setErrores((prev) => ({ ...prev, subtipo: '' }));
-                }}
+                onChange={(e) => { setFormData({ ...formData, subtipo: e.target.value }); setErrores((p) => ({ ...p, subtipo: '' })); }}
                 className={`w-full mt-2 px-3 py-2 border rounded-lg ${errores.subtipo ? 'border-red-400' : ''}`}
               >
-                <option value="RETIRO_CAJERO">Retiro por Cajero</option>
+                <option value="RET_EFECTIVO">Retiro en Efectivo</option>
                 <option value="PAGO_MASIVO">Pago Masivo</option>
                 <option value="COMPRA_COMERCIO">Compra en Comercio</option>
                 <option value="COBRO_COMISION">Cobro de Comisión</option>
@@ -179,14 +235,9 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
             <div>
               <Label>Monto *</Label>
               <Input
-                type="number"
-                step="0.01"
-                min="0.01"
+                type="number" step="0.01" min="0.01"
                 value={formData.monto}
-                onChange={(e) => {
-                  setFormData({ ...formData, monto: e.target.value });
-                  setErrores((prev) => ({ ...prev, monto: '' }));
-                }}
+                onChange={(e) => { setFormData({ ...formData, monto: e.target.value }); setErrores((p) => ({ ...p, monto: '' })); }}
                 placeholder="0.00"
                 className={`mt-2 ${errores.monto ? 'border-red-400' : ''}`}
               />
@@ -204,19 +255,12 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
             </div>
 
             <div className="flex gap-4 mt-6">
-              <button
-                type="button"
-                onClick={() => navigate('dashboard')}
-                disabled={ejecutando}
-                className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 disabled:opacity-50"
-              >
+              <button type="button" onClick={() => navigate('dashboard')} disabled={ejecutando}
+                className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 disabled:opacity-50">
                 Cancelar
               </button>
-              <button
-                type="submit"
-                disabled={ejecutando}
-                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
-              >
+              <button type="submit" disabled={ejecutando}
+                className="px-6 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50">
                 {ejecutando ? 'Ejecutando...' : 'Ejecutar Débito'}
               </button>
             </div>
