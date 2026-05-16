@@ -183,11 +183,6 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
                   <span className="text-gray-600 font-medium">Concepto</span>
                   <span className="font-medium text-gray-800 text-right max-w-[55%]">{comprobante.descripcion || comprobante.subtipo.replace(/_/g, ' ')}</span>
                 </div>
-
-                <div className="flex justify-between text-sm">
-                  <span className="text-gray-600 font-medium">Número de documento</span>
-                  <span className="font-mono font-semibold text-gray-800">{comprobante.numero}</span>
-                </div>
               </div>
             </div>
 

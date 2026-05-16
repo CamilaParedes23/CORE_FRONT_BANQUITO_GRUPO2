@@ -3,7 +3,7 @@
 // Backend: /api/v1/core/clientes
 // ============================================================================
 
-import { get, post, patch } from './apiClient';
+import { get, post, put, patch } from './apiClient';
 
 // --- Tipos alineados con los DTOs del backend ---
 
@@ -100,11 +100,11 @@ export const ClienteService = {
     patch<ClienteResponse>(`/clientes/${id}/estado`, { estado }),
 
   /**
-   * PATCH /api/v1/core/clientes/{id}
+   * PUT /api/v1/core/clientes/{id}
    * Actualización de datos del cliente
    */
   actualizar: (id: number, data: Partial<ClienteRequest>) =>
-    patch<ClienteResponse>(`/clientes/${id}`, data),
+    put<ClienteResponse>(`/clientes/${id}`, data),
 
   /**
    * GET /api/v1/core/clientes/ruc/{ruc}/validacion-pagos-masivos

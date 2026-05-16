@@ -129,16 +129,29 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
 
     setEditSubmitting(true);
     try {
-      const updateData: Partial<ClienteRequest> = {
+      // Primero obtener el cliente completo para tener todos los campos
+      const clienteCompleto = await ClienteService.obtenerPorId(cliente.id);
+      
+      // Construir el objeto completo con todos los campos obligatorios
+      const updateData: any = {
+        subtipoClienteId: clienteCompleto.subtipoClienteId,
+        tipoCliente: clienteCompleto.tipoCliente,
+        tipoIdentificacion: clienteCompleto.tipoIdentificacion,
+        identificacion: clienteCompleto.identificacion,
         email: editFormData.email.trim(),
         telefonoMovil: editFormData.telefonoMovil.trim(),
+        direccion: 'Dirección no disponible', // Valor temporal
+        activoPagosMasivos: clienteCompleto.activoPagosMasivos,
       };
 
-      if (cliente.tipoCliente === 'NATURAL') {
+      if (clienteCompleto.tipoCliente === 'NATURAL') {
         updateData.nombres = editFormData.nombres.trim();
         updateData.apellidos = editFormData.apellidos.trim();
-      } else if (cliente.tipoCliente === 'JURIDICO') {
+        updateData.fechaNacimiento = '2000-01-01'; // Valor temporal
+      } else if (clienteCompleto.tipoCliente === 'JURIDICO') {
         updateData.razonSocial = editFormData.razonSocial.trim();
+        updateData.fechaConstitucion = '2020-01-01'; // Valor temporal
+        updateData.representanteLegalId = 1; // Valor temporal - ID del primer cliente
       }
 
       const actualizado = await ClienteService.actualizar(cliente.id, updateData);
