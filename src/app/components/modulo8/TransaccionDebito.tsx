@@ -9,7 +9,6 @@ interface TransaccionDebitoProps {
   navigate: (screen: string) => void;
 }
 
-// ── Helper: número de comprobante corto ──────────────────────────────────────
 function generarNumComprobante(uuid: string): string {
   const raw = uuid?.replace(/-/g, '') ?? '';
   return `DEB-${raw.slice(-8).toUpperCase()}`;
@@ -22,7 +21,6 @@ function formatFechaHora(d: Date): string {
   });
 }
 
-// ── Helper: formatear cuenta con asteriscos ──────────────────────────────────
 function formatCuenta(cuenta: string): string {
   if (!cuenta || cuenta.length <= 4) return cuenta;
   return '*'.repeat(cuenta.length - 4) + cuenta.slice(-4);
@@ -112,7 +110,6 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
     }
   };
 
-  // ── Render ──────────────────────────────────────────────────────────────────
   return (
     <div className="p-8 bg-[#F5F7FA] min-h-full">
       <div className="mb-8">
@@ -120,11 +117,9 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
         <p className="text-gray-600">Ejecutar un débito (retiro) en una cuenta</p>
       </div>
 
-      {/* ── MODAL COMPROBANTE ── */}
       {comprobante && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-md mx-4 overflow-hidden">
-            {/* Cabecera */}
             <div className="bg-[#0D1B4B] px-6 py-5 text-center">
               <div className="w-14 h-14 bg-white/10 rounded-full flex items-center justify-center mx-auto mb-3">
                 <span className="text-3xl">🏦</span>
@@ -133,13 +128,11 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
               <p className="text-blue-200 text-sm">Comprobante de Débito</p>
             </div>
 
-            {/* Número de comprobante destacado */}
             <div className="bg-red-50 border-b border-red-100 px-6 py-4 text-center">
               <p className="text-xs text-gray-500 uppercase tracking-widest mb-1">N° Comprobante</p>
               <p className="text-2xl font-bold text-red-700 font-mono">{comprobante.numero}</p>
             </div>
 
-            {/* Detalle */}
             <div className="px-6 py-4 space-y-4">
               <h3 className="text-lg font-semibold text-[#0D1B4B] border-b border-gray-200 pb-2">Detalle</h3>
 
@@ -186,7 +179,6 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
               </div>
             </div>
 
-            {/* Acciones */}
             <div className="px-6 pb-6 flex gap-3">
               <button
                 onClick={() => setComprobante(null)}
