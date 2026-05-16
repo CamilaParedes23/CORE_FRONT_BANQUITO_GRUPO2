@@ -1,16 +1,4 @@
-// ============================================================================
-// Servicio de Clientes — Alineado con ClienteController del backend
-// Backend: /api/v1/core/clientes
-// ============================================================================
-
 import { get, post, put, patch } from './apiClient';
-
-// --- Tipos alineados con los DTOs del backend ---
-
-/**
- * Request para crear un cliente.
- * Coincide con: com.banquito.core.customers.dto.api.ClienteRequest
- */
 export interface ClienteRequest {
   subtipoClienteId: number;
   tipoCliente: 'NATURAL' | 'JURIDICO';
@@ -30,10 +18,6 @@ export interface ClienteRequest {
   activoPagosMasivos?: boolean;
 }
 
-/**
- * Response de un cliente.
- * Coincide con: com.banquito.core.customers.dto.api.ClienteResponse
- */
 export interface ClienteResponse {
   id: number;
   subtipoClienteId: number;
@@ -47,69 +31,33 @@ export interface ClienteResponse {
   activoPagosMasivos: boolean;
 }
 
-/**
- * Request para cambiar estado de un cliente.
- * Coincide con: com.banquito.core.customers.dto.api.ClienteEstadoRequest
- */
 export interface ClienteEstadoRequest {
   estado: string;
 }
-
-// --- Tipos legacy (para compatibilidad con componentes existentes) ---
 
 export type ClienteNatural = ClienteRequest;
 export type ClienteJuridico = ClienteRequest;
 export type ClienteUpdateData = Partial<ClienteRequest>;
 
-// --- Servicio ---
-
 export const ClienteService = {
-  /**
-   * GET /api/v1/core/clientes
-   * Listar todos los clientes
-   */
   listar: () =>
     get<ClienteResponse[]>('/clientes'),
 
-  /**
-   * GET /api/v1/core/clientes/{id}
-   * Obtener cliente por ID numérico
-   */
   obtenerPorId: (id: number) =>
     get<ClienteResponse>(`/clientes/${id}`),
 
-  /**
-   * GET /api/v1/core/clientes/identificacion/{identificacion}
-   * Consulta de datos del cliente por número de identificación
-   */
   obtenerPorIdentificacion: (identificacion: string) =>
     get<ClienteResponse>(`/clientes/identificacion/${identificacion}`),
 
-  /**
-   * POST /api/v1/core/clientes
-   * Creación de cliente (Natural o Jurídico)
-   */
   crear: (data: ClienteRequest) =>
     post<ClienteResponse>('/clientes', data),
 
-  /**
-   * PATCH /api/v1/core/clientes/{id}/estado
-   * Cambio de estado del cliente
-   */
   cambiarEstado: (id: number, estado: string) =>
     patch<ClienteResponse>(`/clientes/${id}/estado`, { estado }),
 
-  /**
-   * PUT /api/v1/core/clientes/{id}
-   * Actualización de datos del cliente
-   */
   actualizar: (id: number, data: Partial<ClienteRequest>) =>
     put<ClienteResponse>(`/clientes/${id}`, data),
 
-  /**
-   * GET /api/v1/core/clientes/ruc/{ruc}/validacion-pagos-masivos
-   * Validar empresa para pagos masivos
-   */
   validarEmpresaPagosMasivos: (ruc: string) =>
     get<{ ruc: string; esValida: boolean; mensaje: string; motivo?: string }>(
       `/clientes/ruc/${ruc}/validacion-pagos-masivos`
