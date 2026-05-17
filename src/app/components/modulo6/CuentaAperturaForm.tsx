@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Search } from 'lucide-react';
-import { ClienteService } from '../../services/clienteService';
+import { ClienteService, getNombreCompleto } from '../../services/clienteService';
 import type { ClienteResponse } from '../../services/clienteService';
 import { CuentaService } from '../../services/cuentaService';
 import { SucursalService } from '../../services/sucursalService';
@@ -200,7 +200,7 @@ export default function CuentaAperturaForm({ navigate, clienteId }: CuentaApertu
                 <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-lg">
                   <p className="text-sm font-medium text-blue-800">Cliente encontrado:</p>
                   <p className="text-sm text-blue-700 mt-1">
-                    <span className="font-medium">{clienteEncontrado.nombreVisual}</span>
+                    <span className="font-medium">{getNombreCompleto(clienteEncontrado)}</span>
                     {' · '}
                     {clienteEncontrado.tipoIdentificacion}: {clienteEncontrado.identificacion}
                     {' · '}

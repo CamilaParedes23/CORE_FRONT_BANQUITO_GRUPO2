@@ -4,6 +4,7 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { ClienteService } from '../../services/clienteService';
 import type { ClienteRequest } from '../../services/clienteService';
+import type { ClienteResponse } from '../../services/clienteService';
 
 interface ClienteJuridicoFormProps {
   navigate: (screen: string, id?: string) => void;
@@ -23,6 +24,7 @@ export default function ClienteJuridicoForm({ navigate }: ClienteJuridicoFormPro
     ruc: '',
     razonSocial: '',
     fechaConstitucion: '',
+    representanteLegalId: '',
     correo: '',
     telefono: '',
     direccion: '',
@@ -32,6 +34,12 @@ export default function ClienteJuridicoForm({ navigate }: ClienteJuridicoFormPro
   const [guardando, setGuardando] = useState(false);
   const [errores, setErrores] = useState<Record<string, string>>({});
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
+  
+  // Estado para búsqueda de representante legal
+  const [busquedaCedula, setBusquedaCedula] = useState('');
+  const [resultadosBusqueda, setResultadosBusqueda] = useState<ClienteResponse[]>([]);
+  const [representanteSeleccionado, setRepresentanteSeleccionado] = useState<ClienteResponse | null>(null);
+  const [buscandoRepresentante, setBuscandoRepresentante] = useState(false);
 
   // ── Validaciones ──────────────────────────────────────────────────────────
 
@@ -42,11 +50,18 @@ export default function ClienteJuridicoForm({ navigate }: ClienteJuridicoFormPro
       nuevosErrores.ruc = 'El RUC es obligatorio.';
     } else if (!/^\d{13}$/.test(formData.ruc.trim())) {
       nuevosErrores.ruc = 'El RUC debe tener exactamente 13 dígitos numéricos.';
+    } else if (parseInt(formData.ruc.trim(), 10) <= 0) {
+      nuevosErrores.ruc = 'El RUC debe ser un número positivo.';
     }
 
     if (!formData.razonSocial.trim()) {
       nuevosErrores.razonSocial = 'La razón social es obligatoria.';
     }
+    
+    if (!representanteSeleccionado) {
+      nuevosErrores.representanteLegal = 'Debe seleccionar un representante legal.';
+    }
+
     if (!formData.correo.trim()) {
       nuevosErrores.correo = 'El correo corporativo es obligatorio.';
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.correo.trim())) {
@@ -61,6 +76,41 @@ export default function ClienteJuridicoForm({ navigate }: ClienteJuridicoFormPro
 
     setErrores(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
+  };
+
+  // ── Búsqueda de representante legal ─────────────────────────────────────
+
+  const buscarRepresentantePorCedula = async () => {
+    if (!busquedaCedula.trim()) return;
+    
+    setBuscandoRepresentante(true);
+    setResultadosBusqueda([]);
+    
+    try {
+      const todosClientes = await ClienteService.listar();
+      const clientesNaturales = todosClientes.filter(c => 
+        c.tipoCliente === 'NATURAL' && 
+        c.identificacion.includes(busquedaCedula.trim())
+      );
+      setResultadosBusqueda(clientesNaturales);
+    } catch (err) {
+      console.error('Error al buscar representante legal:', err);
+    } finally {
+      setBuscandoRepresentante(false);
+    }
+  };
+
+  const seleccionarRepresentante = (cliente: ClienteResponse) => {
+    setRepresentanteSeleccionado(cliente);
+    setFormData({ ...formData, representanteLegalId: String(cliente.id) });
+    setBusquedaCedula('');
+    setResultadosBusqueda([]);
+    setErrores((prev) => ({ ...prev, representanteLegal: '' }));
+  };
+
+  const eliminarRepresentante = () => {
+    setRepresentanteSeleccionado(null);
+    setFormData({ ...formData, representanteLegalId: '' });
   };
 
   // ── Submit ────────────────────────────────────────────────────────────────
@@ -78,6 +128,7 @@ export default function ClienteJuridicoForm({ navigate }: ClienteJuridicoFormPro
       identificacion: formData.ruc.trim(),
       razonSocial: formData.razonSocial.trim(),
       fechaConstitucion: formData.fechaConstitucion || undefined,
+      representanteLegalId: parseInt(formData.representanteLegalId, 10),
       email: formData.correo.trim(),
       telefonoMovil: formData.telefono.trim(),
       direccion: formData.direccion.trim(),
@@ -162,6 +213,75 @@ export default function ClienteJuridicoForm({ navigate }: ClienteJuridicoFormPro
                   onChange={(e) => setFormData({ ...formData, fechaConstitucion: e.target.value })}
                   className="mt-2"
                 />
+              </div>
+
+              <div>
+                <Label>Representante Legal *</Label>
+                {representanteSeleccionado ? (
+                  <div className="mt-2 p-3 bg-blue-50 border border-blue-200 rounded-md">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-medium text-sm">{representanteSeleccionado.nombres} {representanteSeleccionado.apellidos}</p>
+                        <p className="text-xs text-gray-600">Cédula: {representanteSeleccionado.identificacion}</p>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={eliminarRepresentante}
+                        className="text-red-600 hover:text-red-800 text-sm"
+                      >
+                        Cambiar
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="mt-2">
+                    <div className="flex gap-2">
+                      <Input
+                        value={busquedaCedula}
+                        onChange={(e) => setBusquedaCedula(e.target.value)}
+                        placeholder="Ingrese cédula del representante"
+                        className="flex-1"
+                      />
+                      <button
+                        type="button"
+                        onClick={buscarRepresentantePorCedula}
+                        disabled={buscandoRepresentante}
+                        className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 disabled:bg-gray-400"
+                      >
+                        {buscandoRepresentante ? 'Buscando...' : 'Buscar'}
+                      </button>
+                    </div>
+                    {resultadosBusqueda.length > 0 && (
+                      <div className="mt-2 border rounded-md max-h-60 overflow-y-auto">
+                        {resultadosBusqueda.map((cliente) => (
+                          <div
+                            key={cliente.id}
+                            onClick={() => seleccionarRepresentante(cliente)}
+                            className="p-3 hover:bg-gray-100 cursor-pointer border-b last:border-b-0"
+                          >
+                            <div className="flex justify-between items-start">
+                              <div>
+                                <p className="text-sm font-medium">{cliente.nombres} {cliente.apellidos}</p>
+                                <p className="text-xs text-gray-600">Cédula: {cliente.identificacion}</p>
+                              </div>
+                              <button
+                                type="button"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  seleccionarRepresentante(cliente);
+                                }}
+                                className="px-3 py-1 bg-blue-600 text-white text-xs rounded hover:bg-blue-700"
+                              >
+                                Seleccionar
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    )}
+                    {errores.representanteLegal && <p className="text-xs text-red-600 mt-1">{errores.representanteLegal}</p>}
+                  </div>
+                )}
               </div>
             </div>
 

@@ -37,6 +37,7 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
     nombres: '',
     apellidos: '',
     razonSocial: '',
+    fechaNacimiento: '',
     email: '',
     telefonoMovil: '',
     direccion: '',
@@ -95,12 +96,13 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
   const handleEditarDatos = () => {
     if (!cliente) return;
     setEditFormData({
-      nombres: cliente.tipoCliente === 'NATURAL' ? cliente.nombreVisual.split(' ').slice(0, -1).join(' ') || '' : '',
-      apellidos: cliente.tipoCliente === 'NATURAL' ? cliente.nombreVisual.split(' ').slice(-1)[0] || '' : '',
-      razonSocial: cliente.tipoCliente === 'JURIDICO' ? cliente.nombreVisual : '',
+      nombres: cliente.nombres || '',
+      apellidos: cliente.apellidos || '',
+      razonSocial: cliente.razonSocial || '',
+      fechaNacimiento: cliente.fechaNacimiento || '',
       email: cliente.email,
       telefonoMovil: cliente.telefonoMovil,
-      direccion: '', // Este campo no viene en la respuesta, se dejará vacío por ahora
+      direccion: cliente.direccion || '',
     });
     setEditErrores({});
     setShowEditModal(true);
@@ -114,6 +116,7 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
     if (!editFormData.email.trim()) nuevosErrores.email = 'El correo es obligatorio.';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editFormData.email.trim())) nuevosErrores.email = 'Ingrese un correo válido.';
     if (!editFormData.telefonoMovil.trim()) nuevosErrores.telefonoMovil = 'El teléfono es obligatorio.';
+    if (!editFormData.direccion.trim()) nuevosErrores.direccion = 'La dirección es obligatoria.';
     if (cliente.tipoCliente === 'NATURAL') {
       if (!editFormData.nombres.trim()) nuevosErrores.nombres = 'Los nombres son obligatorios.';
       if (!editFormData.apellidos.trim()) nuevosErrores.apellidos = 'Los apellidos son obligatorios.';
@@ -129,10 +132,8 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
 
     setEditSubmitting(true);
     try {
-      // Primero obtener el cliente completo para tener todos los campos
       const clienteCompleto = await ClienteService.obtenerPorId(cliente.id);
-      
-      // Construir el objeto completo con todos los campos obligatorios
+
       const updateData: any = {
         subtipoClienteId: clienteCompleto.subtipoClienteId,
         tipoCliente: clienteCompleto.tipoCliente,
@@ -140,18 +141,20 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
         identificacion: clienteCompleto.identificacion,
         email: editFormData.email.trim(),
         telefonoMovil: editFormData.telefonoMovil.trim(),
-        direccion: 'Dirección no disponible', // Valor temporal
+        direccion: editFormData.direccion.trim(),
+        latitud: clienteCompleto.latitud,
+        longitud: clienteCompleto.longitud,
         activoPagosMasivos: clienteCompleto.activoPagosMasivos,
       };
 
       if (clienteCompleto.tipoCliente === 'NATURAL') {
         updateData.nombres = editFormData.nombres.trim();
         updateData.apellidos = editFormData.apellidos.trim();
-        updateData.fechaNacimiento = '2000-01-01'; // Valor temporal
+        updateData.fechaNacimiento = clienteCompleto.fechaNacimiento;
       } else if (clienteCompleto.tipoCliente === 'JURIDICO') {
         updateData.razonSocial = editFormData.razonSocial.trim();
-        updateData.fechaConstitucion = '2020-01-01'; // Valor temporal
-        updateData.representanteLegalId = 1; // Valor temporal - ID del primer cliente
+        updateData.fechaConstitucion = clienteCompleto.fechaConstitucion;
+        updateData.representanteLegalId = clienteCompleto.representanteLegalId ? Number(clienteCompleto.representanteLegalId) : null;
       }
 
       const actualizado = await ClienteService.actualizar(cliente.id, updateData);
@@ -204,7 +207,7 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl text-[#0D1B4B]">{cliente.nombreVisual}</CardTitle>
+              <CardTitle className="text-2xl text-[#0D1B4B]">{cliente.tipoCliente === 'NATURAL' ? `${cliente.nombres} ${cliente.apellidos}` : cliente.razonSocial}</CardTitle>
               <p className="text-gray-600 mt-1">
                 {cliente.tipoCliente === 'NATURAL' ? 'C.I' : 'RUC'}: {cliente.identificacion}
               </p>
@@ -489,6 +492,18 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
                 />
                 {editErrores.telefonoMovil && <p className="text-xs text-red-600 mt-1">{editErrores.telefonoMovil}</p>}
               </div>
+            </div>
+            <div>
+              <Label>Dirección *</Label>
+              <Input
+                value={editFormData.direccion}
+                onChange={(e) => {
+                  setEditFormData({ ...editFormData, direccion: e.target.value });
+                  setEditErrores((prev) => ({ ...prev, direccion: '' }));
+                }}
+                className={`mt-2 ${editErrores.direccion ? 'border-red-400' : ''}`}
+              />
+              {editErrores.direccion && <p className="text-xs text-red-600 mt-1">{editErrores.direccion}</p>}
             </div>
           </div>
           <DialogFooter className="mt-4">

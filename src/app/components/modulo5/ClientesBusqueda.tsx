@@ -4,7 +4,9 @@ import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Search } from 'lucide-react';
 import { ClienteService } from '../../services/clienteService';
+import { CuentaService } from '../../services/cuentaService';
 import type { ClienteResponse } from '../../services/clienteService';
+import type { CuentaResponse } from '../../services/cuentaService';
 
 interface ClientesBusquedaProps {
   navigate: (screen: string, id?: string) => void;
@@ -24,6 +26,23 @@ export default function ClientesBusqueda({ navigate }: ClientesBusquedaProps) {
     setResultado(undefined);
 
     try {
+      if (tipoId === 'CEDULA') {
+        if (!/^\d{10}$/.test(numeroId.trim())) {
+          throw new Error('Cédula inválida: debe tener exactamente 10 dígitos numéricos');
+        }
+      } else if (tipoId === 'RUC') {
+        if (!/^\d{13}$/.test(numeroId.trim())) {
+          throw new Error('RUC inválido: debe tener exactamente 13 dígitos numéricos');
+        }
+      } else if (tipoId === 'PASAPORTE') {
+        if (!/^[A-Za-z0-9]{6,12}$/.test(numeroId.trim())) {
+          throw new Error('Pasaporte inválido: debe tener entre 6 y 12 caracteres alfanuméricos');
+        }
+        if (!/[A-Za-z]/.test(numeroId.trim())) {
+          throw new Error('Pasaporte inválido: debe contener al menos una letra');
+        }
+      }
+
       const cliente = await ClienteService.obtenerPorIdentificacion(numeroId.trim());
       setResultado(cliente);
     } catch (err: any) {
@@ -96,7 +115,7 @@ export default function ClientesBusqueda({ navigate }: ClientesBusquedaProps) {
                 <p className="text-sm font-medium text-green-800 mb-3">Cliente encontrado:</p>
                 <div className="space-y-2 mb-4">
                   <p className="text-sm"><span className="font-medium">Tipo:</span> {resultado.tipoCliente}</p>
-                  <p className="text-sm"><span className="font-medium">Nombre:</span> {resultado.nombreVisual}</p>
+                  <p className="text-sm"><span className="font-medium">Nombre:</span> {resultado.tipoCliente === 'NATURAL' ? `${resultado.nombres} ${resultado.apellidos}` : resultado.razonSocial}</p>
                   <p className="text-sm"><span className="font-medium">Identificación:</span> {resultado.identificacion}</p>
                   <p className="text-sm"><span className="font-medium">Estado:</span> {String(resultado.estado)}</p>
                   <p className="text-sm"><span className="font-medium">Email:</span> {resultado.email}</p>

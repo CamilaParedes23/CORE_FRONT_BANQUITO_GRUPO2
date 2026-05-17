@@ -24,9 +24,17 @@ export interface ClienteResponse {
   tipoCliente: 'NATURAL' | 'JURIDICO';
   tipoIdentificacion: string;
   identificacion: string;
-  nombreVisual: string;
+  nombres?: string;
+  apellidos?: string;
+  razonSocial?: string;
+  fechaNacimiento?: string;
+  fechaConstitucion?: string;
+  representanteLegalId?: number;
   email: string;
   telefonoMovil: string;
+  direccion?: string;
+  latitud?: number;
+  longitud?: number;
   estado: string;
   activoPagosMasivos: boolean;
 }
@@ -37,6 +45,13 @@ export interface ClienteEstadoRequest {
 
 export type ClienteNatural = ClienteRequest;
 export type ClienteJuridico = ClienteRequest;
+
+export function getNombreCompleto(cliente: ClienteResponse): string {
+  if (cliente.tipoCliente === 'NATURAL') {
+    return `${cliente.nombres || ''} ${cliente.apellidos || ''}`.trim();
+  }
+  return cliente.razonSocial || '';
+}
 export type ClienteUpdateData = Partial<ClienteRequest>;
 
 export const ClienteService = {

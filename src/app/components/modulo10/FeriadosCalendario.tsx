@@ -5,7 +5,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { FeriadoService } from '../../services/feriadoService';
-import type { FeriadoResponse } from '../../services/feriadoService';
+import type { FeriadoResponse, FeriadoRequest } from '../../services/feriadoService';
 import { useAuth } from '../../context/AuthContext';
 
 interface FeriadosCalendarioProps {
@@ -20,11 +20,11 @@ export default function FeriadosCalendario({ navigate }: FeriadosCalendarioProps
 
   // Modal agregar feriado
   const [showModal, setShowModal] = useState(false);
-  const [showInfoModal, setShowInfoModal] = useState(false);
+  const [guardando, setGuardando] = useState(false);
   const [formData, setFormData] = useState({
-    fechaFeriado: '',
+    mes: '',
+    dia: '',
     nombre: '',
-    esFinSemana: false,
   });
   const [formErrores, setFormErrores] = useState<Record<string, string>>({});
 
@@ -37,22 +37,40 @@ export default function FeriadosCalendario({ navigate }: FeriadosCalendarioProps
 
   const validarForm = (): boolean => {
     const errs: Record<string, string> = {};
-    if (!formData.fechaFeriado) errs.fechaFeriado = 'La fecha es obligatoria.';
+    if (!formData.mes) errs.mes = 'El mes es obligatorio.';
+    if (!formData.dia) errs.dia = 'El día es obligatorio.';
     if (!formData.nombre.trim()) errs.nombre = 'El nombre es obligatorio.';
     setFormErrores(errs);
     return Object.keys(errs).length === 0;
   };
 
-  const handleGuardar = () => {
+  const handleGuardar = async () => {
     if (!validarForm()) return;
-    // El backend no tiene endpoint POST /feriados en la versión actual.
-    // Se muestra el modal informativo.
-    setShowModal(false);
-    setShowInfoModal(true);
+    
+    setGuardando(true);
+    try {
+      const añoActual = new Date().getFullYear();
+      const fechaCompleta = `${añoActual}-${formData.mes.padStart(2, '0')}-${formData.dia.padStart(2, '0')}`;
+      
+      const request: FeriadoRequest = {
+        fecha: fechaCompleta,
+        nombre: formData.nombre.trim(),
+        estado: 'ACTIVO',
+      };
+      
+      const nuevoFeriado = await FeriadoService.crear(request);
+      setFeriados([...feriados, nuevoFeriado]);
+      setShowModal(false);
+      setFormData({ mes: '', dia: '', nombre: '' });
+    } catch (err: any) {
+      setError(err.message || 'Error al crear el feriado');
+    } finally {
+      setGuardando(false);
+    }
   };
 
   const handleAbrirModal = () => {
-    setFormData({ fechaFeriado: '', nombre: '', esFinSemana: false });
+    setFormData({ mes: '', dia: '', nombre: '' });
     setFormErrores({});
     setShowModal(true);
   };
@@ -141,20 +159,57 @@ export default function FeriadosCalendario({ navigate }: FeriadosCalendarioProps
           </DialogHeader>
 
           <div className="space-y-4 py-2">
-            <div>
-              <Label>Fecha del Feriado *</Label>
-              <Input
-                type="date"
-                value={formData.fechaFeriado}
-                onChange={(e) => {
-                  setFormData({ ...formData, fechaFeriado: e.target.value });
-                  setFormErrores(prev => ({ ...prev, fechaFeriado: '' }));
-                }}
-                className={`mt-2 ${formErrores.fechaFeriado ? 'border-red-400' : ''}`}
-              />
-              {formErrores.fechaFeriado && (
-                <p className="text-xs text-red-600 mt-1">{formErrores.fechaFeriado}</p>
-              )}
+            <div className="flex gap-4">
+              <div className="flex-1">
+                <Label>Mes *</Label>
+                <select
+                  value={formData.mes}
+                  onChange={(e) => {
+                    setFormData({ ...formData, mes: e.target.value });
+                    setFormErrores(prev => ({ ...prev, mes: '' }));
+                  }}
+                  className={`mt-2 w-full px-3 py-2 border rounded-lg ${formErrores.mes ? 'border-red-400' : ''}`}
+                >
+                  <option value="">Seleccione mes</option>
+                  <option value="01">Enero</option>
+                  <option value="02">Febrero</option>
+                  <option value="03">Marzo</option>
+                  <option value="04">Abril</option>
+                  <option value="05">Mayo</option>
+                  <option value="06">Junio</option>
+                  <option value="07">Julio</option>
+                  <option value="08">Agosto</option>
+                  <option value="09">Septiembre</option>
+                  <option value="10">Octubre</option>
+                  <option value="11">Noviembre</option>
+                  <option value="12">Diciembre</option>
+                </select>
+                {formErrores.mes && (
+                  <p className="text-xs text-red-600 mt-1">{formErrores.mes}</p>
+                )}
+              </div>
+
+              <div className="flex-1">
+                <Label>Día *</Label>
+                <select
+                  value={formData.dia}
+                  onChange={(e) => {
+                    setFormData({ ...formData, dia: e.target.value });
+                    setFormErrores(prev => ({ ...prev, dia: '' }));
+                  }}
+                  className={`mt-2 w-full px-3 py-2 border rounded-lg ${formErrores.dia ? 'border-red-400' : ''}`}
+                >
+                  <option value="">Seleccione día</option>
+                  {Array.from({ length: 31 }, (_, i) => (
+                    <option key={i + 1} value={String(i + 1).padStart(2, '0')}>
+                      {i + 1}
+                    </option>
+                  ))}
+                </select>
+                {formErrores.dia && (
+                  <p className="text-xs text-red-600 mt-1">{formErrores.dia}</p>
+                )}
+              </div>
             </div>
 
             <div>
@@ -172,19 +227,6 @@ export default function FeriadosCalendario({ navigate }: FeriadosCalendarioProps
                 <p className="text-xs text-red-600 mt-1">{formErrores.nombre}</p>
               )}
             </div>
-
-            <div className="flex items-center gap-3 mt-2">
-              <input
-                id="esFinSemana"
-                type="checkbox"
-                checked={formData.esFinSemana}
-                onChange={(e) => setFormData({ ...formData, esFinSemana: e.target.checked })}
-                className="w-4 h-4 accent-[#0D1B4B]"
-              />
-              <label htmlFor="esFinSemana" className="text-sm text-gray-700 cursor-pointer">
-                Es fin de semana
-              </label>
-            </div>
           </div>
 
           <DialogFooter className="mt-4 gap-2">
@@ -196,35 +238,10 @@ export default function FeriadosCalendario({ navigate }: FeriadosCalendarioProps
             </button>
             <button
               onClick={handleGuardar}
-              className="px-4 py-2 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b] transition-colors text-sm"
+              disabled={guardando}
+              className="px-4 py-2 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b] transition-colors text-sm disabled:opacity-50"
             >
-              Guardar Feriado
-            </button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
-      {/* Modal Info (backend sin endpoint POST) */}
-      <Dialog open={showInfoModal} onOpenChange={setShowInfoModal}>
-        <DialogContent>
-          <DialogHeader>
-            <DialogTitle className="text-amber-600">⚠️ Función no disponible</DialogTitle>
-            <DialogDescription>
-              El backend actual no expone un endpoint <code className="bg-gray-100 px-1 rounded">POST /feriados</code>. La creación de feriados debe realizarse directamente en la base de datos o habilitando el endpoint en el backend.
-            </DialogDescription>
-          </DialogHeader>
-          <div className="my-2 p-3 bg-amber-50 border border-amber-200 rounded-lg text-sm text-amber-800">
-            <p className="font-medium mb-1">Datos capturados correctamente:</p>
-            <p>📅 Fecha: <strong>{formData.fechaFeriado}</strong></p>
-            <p>📝 Nombre: <strong>{formData.nombre}</strong></p>
-            <p>📌 Fin de semana: <strong>{formData.esFinSemana ? 'Sí' : 'No'}</strong></p>
-          </div>
-          <DialogFooter>
-            <button
-              onClick={() => setShowInfoModal(false)}
-              className="px-4 py-2 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b] transition-colors text-sm"
-            >
-              Entendido
+              {guardando ? 'Guardando...' : 'Guardar Feriado'}
             </button>
           </DialogFooter>
         </DialogContent>

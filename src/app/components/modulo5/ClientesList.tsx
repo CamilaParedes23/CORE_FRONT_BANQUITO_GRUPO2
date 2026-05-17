@@ -1,6 +1,6 @@
 import { useState, useEffect } from 'react';
 import { Badge } from '../ui/badge';
-import { ClienteService } from '../../services/clienteService';
+import { ClienteService, getNombreCompleto } from '../../services/clienteService';
 import type { ClienteResponse } from '../../services/clienteService';
 
 interface ClientesListProps {
@@ -39,7 +39,7 @@ export default function ClientesList({ navigate }: ClientesListProps) {
     if (filters.pagosMasivos === 'NO' && c.activoPagosMasivos) return false;
     if (filters.busqueda) {
       const q = filters.busqueda.toLowerCase();
-      return c.identificacion.includes(q) || c.nombreVisual.toLowerCase().includes(q);
+      return c.identificacion.includes(q) || getNombreCompleto(c).toLowerCase().includes(q);
     }
     return true;
   });
@@ -167,7 +167,7 @@ export default function ClientesList({ navigate }: ClientesListProps) {
                         {cliente.tipoCliente}
                       </Badge>
                     </td>
-                    <td className="py-3 px-4 text-sm text-gray-800">{cliente.nombreVisual}</td>
+                    <td className="py-3 px-4 text-sm text-gray-800">{getNombreCompleto(cliente)}</td>
                     <td className="py-3 px-4 text-sm">
                       <Badge className={estadoColor[String(cliente.estado)] || 'bg-gray-400'}>
                         {String(cliente.estado)}
