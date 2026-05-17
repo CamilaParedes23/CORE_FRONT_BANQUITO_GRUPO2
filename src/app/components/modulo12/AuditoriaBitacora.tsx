@@ -1,10 +1,21 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Badge } from '../ui/badge';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { AuditoriaService } from '../../services/auditoriaService';
 import type { AuditoriaEventoResponse } from '../../services/auditoriaService';
+import { UsuarioCoreService } from '../../services/usuarioCoreService';
+
+const ITEMS_POR_PAGINA = 15;
+
+const MODULO_MAPPING: Record<string, string[]> = {
+  CLIENTES:      ['CLIENTE'],
+  CUENTAS:       ['CUENTA'],
+  TRANSACCIONES: ['TRANSACCION_CUENTA'],
+  USUARIOS:      ['USUARIO_CORE', 'CREDENCIAL_WEB'],
+  SEED:          ['SUCURSAL'],
+};
 
 interface AuditoriaBitacoraProps {
   navigate: (screen: string) => void;
@@ -15,18 +26,18 @@ export default function AuditoriaBitacora({ navigate }: AuditoriaBitacoraProps) 
   const [eventos, setEventos] = useState<AuditoriaEventoResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [paginaActual, setPaginaActual] = useState(1);
+  const [rolPorId, setRolPorId] = useState<Record<string, string>>({});
 
-  const cargarEventos = async (moduloFiltro?: string) => {
+  const cargarEventos = async () => {
     setLoading(true);
     setError(null);
     try {
-      let data: AuditoriaEventoResponse[];
-      if (moduloFiltro) {
-        data = await AuditoriaService.consultarPorModulo(moduloFiltro);
-      } else {
-        data = await AuditoriaService.listar();
-      }
-      setEventos(data);
+      const data = await AuditoriaService.listar();
+      const eventosOrdenados = [...data].sort(
+        (a, b) => new Date(b.fechaEvento).getTime() - new Date(a.fechaEvento).getTime()
+      );
+      setEventos(eventosOrdenados);
     } catch (err: any) {
       setError(err.message || 'Error al cargar eventos de auditoría');
     } finally {
@@ -38,14 +49,45 @@ export default function AuditoriaBitacora({ navigate }: AuditoriaBitacoraProps) 
     cargarEventos();
   }, []);
 
+  useEffect(() => {
+    if (filtros.modulo !== 'USUARIOS') return;
+    UsuarioCoreService.listar()
+      .then(usuarios => {
+        const mapa: Record<string, string> = {};
+        usuarios.forEach(u => { mapa[String(u.id)] = u.rol; });
+        setRolPorId(mapa);
+      })
+      .catch(() => {});
+  }, [filtros.modulo]);
+
   const handleAplicarFiltros = () => {
-    cargarEventos(filtros.modulo || undefined);
+    setPaginaActual(1);
   };
 
-  const eventosFiltrados = eventos.filter(e => {
-    if (filtros.resultado && e.resultado !== filtros.resultado) return false;
-    return true;
-  });
+  const eventosFiltrados = useMemo(() => {
+    return eventos.filter(e => {
+      if (filtros.resultado && e.resultado !== filtros.resultado) return false;
+      if (filtros.modulo) {
+        const entidadesPermitidas = MODULO_MAPPING[filtros.modulo];
+        if (entidadesPermitidas && !entidadesPermitidas.includes(e.entidad)) return false;
+      }
+      return true;
+    });
+  }, [eventos, filtros.resultado, filtros.modulo]);
+
+  const totalPaginas = Math.max(1, Math.ceil(eventosFiltrados.length / ITEMS_POR_PAGINA));
+  const eventosPagina = eventosFiltrados.slice(
+    (paginaActual - 1) * ITEMS_POR_PAGINA,
+    paginaActual * ITEMS_POR_PAGINA
+  );
+
+  const paginasVisibles = () => {
+    const rango: number[] = [];
+    const inicio = Math.max(1, paginaActual - 2);
+    const fin = Math.min(totalPaginas, paginaActual + 2);
+    for (let i = inicio; i <= fin; i++) rango.push(i);
+    return rango;
+  };
 
   return (
     <div className="p-8 bg-[#F5F7FA] min-h-full">
@@ -123,9 +165,16 @@ export default function AuditoriaBitacora({ navigate }: AuditoriaBitacoraProps) 
 
       <Card>
         <CardHeader>
-          <CardTitle className="text-[#0D1B4B]">
-            Eventos Registrados {!loading && `(${eventosFiltrados.length})`}
-          </CardTitle>
+          <div className="flex items-center justify-between">
+            <CardTitle className="text-[#0D1B4B]">
+              Eventos Registrados {!loading && `(${eventosFiltrados.length})`}
+            </CardTitle>
+            {!loading && eventosFiltrados.length > 0 && (
+              <span className="text-sm text-gray-500">
+                Página {paginaActual} de {totalPaginas}
+              </span>
+            )}
+          </div>
         </CardHeader>
         <CardContent>
           {loading ? (
@@ -135,11 +184,14 @@ export default function AuditoriaBitacora({ navigate }: AuditoriaBitacoraProps) 
               <table className="w-full text-sm">
                 <thead>
                   <tr className="border-b">
-                    <th className="text-left py-3 px-3 font-medium text-gray-600">Fecha</th>
-                    <th className="text-left py-3 px-3 font-medium text-gray-600">Módulo</th>
+                    <th className="text-left py-3 px-3 font-medium text-gray-600">
+                      Fecha <span className="text-[#0D1B4B] ml-1">&#9660;</span>
+                    </th>
                     <th className="text-left py-3 px-3 font-medium text-gray-600">Acción</th>
                     <th className="text-left py-3 px-3 font-medium text-gray-600">Entidad</th>
-                    <th className="text-left py-3 px-3 font-medium text-gray-600">ID Entidad</th>
+                    {filtros.modulo === 'USUARIOS' && (
+                      <th className="text-left py-3 px-3 font-medium text-[#0D1B4B]">Usuario</th>
+                    )}
                     <th className="text-left py-3 px-3 font-medium text-gray-600">Resultado</th>
                     <th className="text-left py-3 px-3 font-medium text-gray-600">Canal</th>
                   </tr>
@@ -147,22 +199,26 @@ export default function AuditoriaBitacora({ navigate }: AuditoriaBitacoraProps) 
                 <tbody>
                   {eventosFiltrados.length === 0 ? (
                     <tr>
-                      <td colSpan={7} className="text-center py-6 text-gray-500">
+                      <td colSpan={filtros.modulo === 'USUARIOS' ? 6 : 5} className="text-center py-6 text-gray-500">
                         No se encontraron eventos de auditoría
                       </td>
                     </tr>
                   ) : (
-                    eventosFiltrados.map((evento) => (
+                    eventosPagina.map((evento) => (
                       <tr key={evento.id} className="border-b hover:bg-gray-50">
                         <td className="py-3 px-3">
                           {new Date(evento.fechaEvento).toLocaleString('es-EC')}
                         </td>
-                        <td className="py-3 px-3">
-                          <Badge variant="outline" className="text-xs">{evento.modulo}</Badge>
-                        </td>
                         <td className="py-3 px-3">{evento.accion}</td>
                         <td className="py-3 px-3">{evento.entidad}</td>
-                        <td className="py-3 px-3 font-medium">{evento.entidadId}</td>
+                        {filtros.modulo === 'USUARIOS' && (
+                          <td className="py-3 px-3">
+                            {rolPorId[String(evento.entidadId)]
+                              ? <span className="text-xs font-semibold px-2 py-1 rounded-full bg-[#0D1B4B]/10 text-[#0D1B4B]">{rolPorId[String(evento.entidadId)]}</span>
+                              : <span className="text-gray-400 text-xs">—</span>
+                            }
+                          </td>
+                        )}
                         <td className="py-3 px-3">
                           <Badge className={evento.resultado === 'EXITOSO' ? 'bg-green-600' : 'bg-red-600'}>
                             {evento.resultado}
@@ -174,6 +230,58 @@ export default function AuditoriaBitacora({ navigate }: AuditoriaBitacoraProps) 
                   )}
                 </tbody>
               </table>
+            </div>
+          )}
+
+          {/* Controles de paginación */}
+          {!loading && totalPaginas > 1 && (
+            <div className="flex items-center justify-between mt-5 pt-4 border-t border-slate-100">
+              <span className="text-sm text-gray-500">
+                Mostrando {(paginaActual - 1) * ITEMS_POR_PAGINA + 1}–{Math.min(paginaActual * ITEMS_POR_PAGINA, eventosFiltrados.length)} de {eventosFiltrados.length} eventos
+              </span>
+              <div className="flex items-center gap-1">
+                <button
+                  onClick={() => setPaginaActual(1)}
+                  disabled={paginaActual === 1}
+                  className="px-2 py-1.5 text-sm rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  «
+                </button>
+                <button
+                  onClick={() => setPaginaActual(p => Math.max(1, p - 1))}
+                  disabled={paginaActual === 1}
+                  className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  ‹ Anterior
+                </button>
+                {paginasVisibles().map(num => (
+                  <button
+                    key={num}
+                    onClick={() => setPaginaActual(num)}
+                    className={`px-3 py-1.5 text-sm rounded-lg border transition-colors ${
+                      num === paginaActual
+                        ? 'bg-[#0D1B4B] text-white border-[#0D1B4B]'
+                        : 'border-slate-200 text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    {num}
+                  </button>
+                ))}
+                <button
+                  onClick={() => setPaginaActual(p => Math.min(totalPaginas, p + 1))}
+                  disabled={paginaActual === totalPaginas}
+                  className="px-3 py-1.5 text-sm rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Siguiente ›
+                </button>
+                <button
+                  onClick={() => setPaginaActual(totalPaginas)}
+                  disabled={paginaActual === totalPaginas}
+                  className="px-2 py-1.5 text-sm rounded-lg border border-slate-200 text-slate-600 hover:bg-slate-50 disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  »
+                </button>
+              </div>
             </div>
           )}
         </CardContent>

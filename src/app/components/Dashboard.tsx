@@ -3,7 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from './ui/card';
 import { useAuth } from '../context/AuthContext';
 import { config } from '../config/env';
 import { Badge } from './ui/badge';
-import { TrendingUp, Users, CreditCard, ArrowRightLeft, AlertCircle } from 'lucide-react';
+import {
+  TrendingUp, Users, CreditCard, Shield, Settings,
+  ClipboardList, Search, UserCheck, Lock, AlertTriangle,
+  CheckCircle2, XCircle, Clock,
+} from 'lucide-react';
 import { ClienteService } from '../services/clienteService';
 import { CuentaService } from '../services/cuentaService';
 import { AuditoriaService } from '../services/auditoriaService';
@@ -13,12 +17,58 @@ interface DashboardProps {
   navigate: (screen: string, data?: any) => void;
 }
 
+const HISTORIAL_MOCK = [
+  {
+    id: 1,
+    descripcion: "Usuario 'cajero.norte' inició sesión en Sucursal #1",
+    tiempo: 'Hace 5 min',
+    tipo: 'SESION',
+    resultado: 'EXITOSO',
+  },
+  {
+    id: 2,
+    descripcion: "Cuenta 0010000000002 cambió estado a BLOQUEADA por Supervisor Sur",
+    tiempo: 'Hace 12 min',
+    tipo: 'CUENTA',
+    resultado: 'EXITOSO',
+  },
+  {
+    id: 3,
+    descripcion: "Subtipo 'ABONO_NOMINA' activado por admin",
+    tiempo: 'Hace 1 hora',
+    tipo: 'PARAMETRO',
+    resultado: 'EXITOSO',
+  },
+  {
+    id: 4,
+    descripcion: "Intento de acceso no autorizado bloqueado — IP 192.168.1.45",
+    tiempo: 'Hace 1 hora',
+    tipo: 'SEGURIDAD',
+    resultado: 'FALLIDO',
+  },
+  {
+    id: 5,
+    descripcion: "Override aprobado por supervisor.sur para transacción #TXN-0091",
+    tiempo: 'Hace 2 horas',
+    tipo: 'OVERRIDE',
+    resultado: 'EXITOSO',
+  },
+];
+
+const TIPO_BADGE: Record<string, string> = {
+  SESION:    'bg-blue-100 text-blue-700',
+  CUENTA:    'bg-purple-100 text-purple-700',
+  PARAMETRO: 'bg-yellow-100 text-yellow-800',
+  SEGURIDAD: 'bg-red-100 text-red-700',
+  OVERRIDE:  'bg-green-100 text-green-700',
+};
+
 export default function Dashboard({ navigate }: DashboardProps) {
   const { user } = useAuth();
   const [totalClientes, setTotalClientes] = useState<number | null>(null);
   const [totalCuentas, setTotalCuentas] = useState<number | null>(null);
   const [saldoTotal, setSaldoTotal] = useState<number | null>(null);
-  const [actividadReciente, setActividadReciente] = useState<AuditoriaEventoResponse[]>([]);
+  const [actividadReal, setActividadReal] = useState<AuditoriaEventoResponse[]>([]);
   const [loadingMetricas, setLoadingMetricas] = useState(true);
 
   useEffect(() => {
@@ -39,7 +89,7 @@ export default function Dashboard({ navigate }: DashboardProps) {
         setSaldoTotal(total);
       }
       if (auditoriaResult.status === 'fulfilled') {
-        setActividadReciente(auditoriaResult.value.slice(0, 5));
+        setActividadReal(auditoriaResult.value.slice(0, 5));
       }
       setLoadingMetricas(false);
     });
@@ -52,174 +102,226 @@ export default function Dashboard({ navigate }: DashboardProps) {
     return `$${val.toFixed(2)}`;
   };
 
+  const totalAuditoria = actividadReal.length > 0 ? `${actividadReal.length}+` : '...';
+
   const metricas = [
     {
       label: 'Clientes Activos',
       valor: totalClientes !== null ? totalClientes.toLocaleString() : '...',
       icon: Users,
-      color: 'text-blue-600',
+      bgColor: 'bg-blue-50',
+      iconColor: 'text-blue-600',
+      borderColor: 'border-blue-200',
     },
     {
       label: 'Cuentas Abiertas',
       valor: totalCuentas !== null ? totalCuentas.toLocaleString() : '...',
       icon: CreditCard,
-      color: 'text-green-600',
+      bgColor: 'bg-emerald-50',
+      iconColor: 'text-emerald-600',
+      borderColor: 'border-emerald-200',
     },
     {
       label: 'Eventos de Auditoría',
-      valor: actividadReciente.length > 0 ? actividadReciente.length.toString() + '+' : '...',
-      icon: ArrowRightLeft,
-      color: 'text-purple-600',
+      valor: loadingMetricas ? '...' : totalAuditoria,
+      icon: Shield,
+      bgColor: 'bg-purple-50',
+      iconColor: 'text-purple-600',
+      borderColor: 'border-purple-200',
     },
     {
       label: 'Saldo Total Sistema',
       valor: formatSaldo(saldoTotal),
       icon: TrendingUp,
-      color: 'text-orange-600',
+      bgColor: 'bg-amber-50',
+      iconColor: 'text-amber-600',
+      borderColor: 'border-amber-200',
+    },
+  ];
+
+  const accesoRapido = [
+    {
+      label: 'Gestionar Usuarios Core',
+      screen: 'usuarios-core',
+      icon: UserCheck,
+      bg: 'bg-[#0D1B4B]',
+      text: 'text-white',
+      hover: 'hover:bg-[#1a2d6b]',
+    },
+    {
+      label: 'Parametrizar Subtipos',
+      screen: 'parametros',
+      icon: Settings,
+      bg: 'bg-[#C9A84C]',
+      text: 'text-[#0D1B4B]',
+      hover: 'hover:bg-[#b89640]',
+    },
+    {
+      label: 'Logs de Auditoría',
+      screen: 'auditoria',
+      icon: ClipboardList,
+      bg: 'bg-[#0D1B4B]',
+      text: 'text-white',
+      hover: 'hover:bg-[#1a2d6b]',
+    },
+    {
+      label: 'Consultar Transacción',
+      screen: 'transaccion-consulta',
+      icon: Search,
+      bg: 'bg-slate-100',
+      text: 'text-slate-700',
+      hover: 'hover:bg-slate-200',
     },
   ];
 
   return (
     <div className="p-8 bg-[#F5F7FA] min-h-full">
+
+      {/* Encabezado */}
       <div className="mb-8">
-        <h1 className="text-3xl font-semibold text-[#0D1B4B] mb-2">
+        <h1 className="text-3xl font-semibold text-[#0D1B4B] mb-1">
           Bienvenido, {user?.nombreCompleto}
         </h1>
-        <p className="text-gray-600">Dashboard del {config.appSubtitle} {config.appName}</p>
+        <p className="text-gray-500 text-sm">Panel de Control Operativo — {config.appName} {config.appSubtitle}</p>
         <div className="flex gap-2 mt-3">
-          <Badge className="bg-[#0D1B4B]">{user?.rol}</Badge>
+          <Badge className="bg-[#0D1B4B] text-white">{user?.rol}</Badge>
           {user?.sucursal && <Badge variant="outline">{user.sucursal.nombre}</Badge>}
         </div>
       </div>
 
-      {/* Métricas */}
-      <div className="grid grid-cols-4 gap-6 mb-8">
-        {metricas.map((metrica, index) => {
-          const Icon = metrica.icon;
+      {/* Tarjetas de métricas */}
+      <div className="grid grid-cols-4 gap-5 mb-8">
+        {metricas.map((m, i) => {
+          const Icon = m.icon;
           return (
-            <Card key={index} className="hover:shadow-lg transition-shadow">
-              <CardContent className="pt-6">
-                <div className="flex items-center justify-between mb-4">
-                  <Icon className={`w-8 h-8 ${metrica.color}`} />
-                  {loadingMetricas && (
-                    <span className="text-xs text-gray-400">cargando...</span>
-                  )}
+            <Card key={i} className={`border ${m.borderColor} hover:shadow-md transition-shadow`}>
+              <CardContent className="pt-5 pb-5">
+                <div className={`inline-flex items-center justify-center w-11 h-11 rounded-xl ${m.bgColor} mb-4`}>
+                  <Icon className={`w-6 h-6 ${m.iconColor}`} />
                 </div>
-                <div className="text-3xl font-bold text-[#0D1B4B] mb-2">{metrica.valor}</div>
-                <div className="text-sm text-gray-600">{metrica.label}</div>
+                <div className="text-3xl font-bold text-[#0D1B4B] mb-1">
+                  {loadingMetricas && m.valor === '...' ? (
+                    <span className="text-gray-300 animate-pulse">—</span>
+                  ) : m.valor}
+                </div>
+                <div className="text-sm text-gray-500">{m.label}</div>
               </CardContent>
             </Card>
           );
         })}
       </div>
 
+      {/* Columnas principales */}
       <div className="grid grid-cols-2 gap-6 mb-8">
-        {/* Actividad Reciente desde auditoría */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-[#0D1B4B] flex items-center gap-2">
-              <AlertCircle className="w-5 h-5 text-blue-600" />
-              Actividad Reciente
+
+        {/* Historial de Auditoría Administrativa */}
+        <Card className="border border-slate-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-[#0D1B4B] flex items-center gap-2 text-base">
+              <Clock className="w-4 h-4 text-blue-500" />
+              Historial de Auditoría Administrativa
             </CardTitle>
           </CardHeader>
           <CardContent>
-            {actividadReciente.length === 0 ? (
-              <p className="text-sm text-gray-500">
-                {loadingMetricas ? 'Cargando...' : 'Sin actividad reciente'}
-              </p>
-            ) : (
-              <div className="space-y-3">
-                {actividadReciente.map((evento) => (
-                  <div key={evento.id} className="pb-3 border-b last:border-b-0">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-sm font-medium text-[#0D1B4B]">{evento.accion}</span>
-                      <Badge
-                        className={`text-xs ${evento.resultado === 'EXITOSO' ? 'bg-green-600' : 'bg-red-600'}`}
-                      >
-                        {evento.resultado}
-                      </Badge>
-                    </div>
-                    <p className="text-sm text-gray-600">
-                      {evento.entidad} {evento.entidadId ? `#${evento.entidadId}` : ''}
-                    </p>
-                    <p className="text-xs text-gray-500 mt-1">
-                      Módulo: {evento.modulo} | {new Date(evento.fechaEvento).toLocaleString('es-EC')}
-                    </p>
+            <div className="space-y-3">
+              {HISTORIAL_MOCK.map((item) => (
+                <div key={item.id} className="flex items-start gap-3 pb-3 border-b border-slate-100 last:border-b-0 last:pb-0">
+                  <div className="mt-0.5 flex-shrink-0">
+                    {item.resultado === 'EXITOSO'
+                      ? <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+                      : <XCircle className="w-4 h-4 text-red-500" />
+                    }
                   </div>
-                ))}
-              </div>
-            )}
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm text-[#0D1B4B] leading-snug">{item.descripcion}</p>
+                    <div className="flex items-center gap-2 mt-1">
+                      <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${TIPO_BADGE[item.tipo]}`}>
+                        {item.tipo}
+                      </span>
+                      <span className="text-xs text-gray-400">{item.tiempo}</span>
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </CardContent>
         </Card>
 
-        {/* Estado del sistema */}
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-[#0D1B4B]">Estado del Sistema</CardTitle>
+        {/* Resumen de Control de Seguridad */}
+        <Card className="border border-slate-200">
+          <CardHeader className="pb-3">
+            <CardTitle className="text-[#0D1B4B] flex items-center gap-2 text-base">
+              <Shield className="w-4 h-4 text-purple-500" />
+              Resumen de Control de Seguridad
+            </CardTitle>
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-600 rounded-full animate-pulse" />
-                  <span className="text-sm font-medium text-green-800">Backend Spring Boot</span>
+
+              <div className="flex items-center justify-between p-4 bg-blue-50 rounded-xl border border-blue-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <UserCheck className="w-5 h-5 text-blue-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[#0D1B4B]">Sesiones de Cajeros Activas</p>
+                    <p className="text-xs text-gray-500">En este momento</p>
+                  </div>
                 </div>
-                <Badge className="bg-green-600 text-xs">Puerto 8081</Badge>
+                <span className="text-2xl font-bold text-blue-700">14</span>
               </div>
-              <div className="flex items-center justify-between p-3 bg-green-50 rounded-lg border border-green-200">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-green-600 rounded-full animate-pulse" />
-                  <span className="text-sm font-medium text-green-800">Base de Datos</span>
+
+              <div className="flex items-center justify-between p-4 bg-red-50 rounded-xl border border-red-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-red-100 rounded-lg flex items-center justify-center">
+                    <Lock className="w-5 h-5 text-red-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[#0D1B4B]">Bloqueos por Intento de Fraude</p>
+                    <p className="text-xs text-gray-500">Cuentas bloqueadas hoy</p>
+                  </div>
                 </div>
-                <Badge className="bg-green-600 text-xs">MariaDB</Badge>
+                <span className="text-2xl font-bold text-red-600">2</span>
               </div>
-              <div className="flex items-center justify-between p-3 bg-blue-50 rounded-lg border border-blue-200">
-                <div className="flex items-center gap-2">
-                  <div className="w-3 h-3 bg-blue-600 rounded-full" />
-                  <span className="text-sm font-medium text-blue-800">API Base</span>
+
+              <div className="flex items-center justify-between p-4 bg-amber-50 rounded-xl border border-amber-100">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-amber-100 rounded-lg flex items-center justify-center">
+                    <AlertTriangle className="w-5 h-5 text-amber-600" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-medium text-[#0D1B4B]">Solicitudes de Override Pendientes</p>
+                    <p className="text-xs text-gray-500">Requieren aprobación</p>
+                  </div>
                 </div>
-                <span className="text-xs text-blue-600 font-mono">{config.apiBaseUrl}</span>
+                <span className="text-2xl font-bold text-amber-600">3</span>
               </div>
+
             </div>
           </CardContent>
         </Card>
       </div>
 
-      {/* Accesos Rápidos */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="text-[#0D1B4B]">Accesos Rápidos</CardTitle>
+      {/* Accesos Rápidos Administrativos */}
+      <Card className="border border-slate-200">
+        <CardHeader className="pb-3">
+          <CardTitle className="text-[#0D1B4B] text-base">Accesos Rápidos</CardTitle>
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-4 gap-4">
-            <button
-              onClick={() => navigate('clientes-busqueda')}
-              className="p-4 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b] transition-colors"
-            >
-              <Users className="w-6 h-6 mx-auto mb-2" />
-              <p className="text-sm font-medium">Buscar Cliente</p>
-            </button>
-            <button
-              onClick={() => navigate('cuenta-nueva')}
-              className="p-4 bg-[#C9A84C] text-[#0D1B4B] rounded-lg hover:bg-[#b89640] transition-colors"
-            >
-              <CreditCard className="w-6 h-6 mx-auto mb-2" />
-              <p className="text-sm font-medium">Nueva Cuenta</p>
-            </button>
-            <button
-              onClick={() => navigate('transaccion-transferencia')}
-              className="p-4 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b] transition-colors"
-            >
-              <ArrowRightLeft className="w-6 h-6 mx-auto mb-2" />
-              <p className="text-sm font-medium">Transferencia</p>
-            </button>
-            <button
-              onClick={() => navigate('transaccion-consulta')}
-              className="p-4 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors"
-            >
-              <TrendingUp className="w-6 h-6 mx-auto mb-2" />
-              <p className="text-sm font-medium">Consultar Transacción</p>
-            </button>
+            {accesoRapido.map((btn) => {
+              const Icon = btn.icon;
+              return (
+                <button
+                  key={btn.screen}
+                  onClick={() => navigate(btn.screen)}
+                  className={`flex flex-col items-center justify-center gap-2 p-5 rounded-xl ${btn.bg} ${btn.text} ${btn.hover} transition-all hover:scale-[1.02] active:scale-[0.98]`}
+                >
+                  <Icon className="w-6 h-6" />
+                  <span className="text-sm font-medium text-center leading-tight">{btn.label}</span>
+                </button>
+              );
+            })}
           </div>
         </CardContent>
       </Card>
