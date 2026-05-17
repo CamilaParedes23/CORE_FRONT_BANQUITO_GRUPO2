@@ -60,7 +60,6 @@ export default function TransaccionTransferencia({ navigate }: TransaccionTransf
     return Object.keys(nuevos).length === 0;
   };
 
-  // ── Cargar información de cuentas y clientes ─────────────────────────────
   useEffect(() => {
     const cargarCuentas = async () => {
       if (!formData.cuentaOrigen.trim() || !formData.cuentaDestino.trim()) {
@@ -131,7 +130,6 @@ export default function TransaccionTransferencia({ navigate }: TransaccionTransf
       return;
     }
 
-    // Validar usando las funciones de validación
     const validation = validarTransferencia(
       clienteOrigen,
       cuentaOrigen,

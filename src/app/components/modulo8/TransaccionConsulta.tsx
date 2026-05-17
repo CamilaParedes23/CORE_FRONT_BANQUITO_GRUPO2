@@ -25,8 +25,6 @@ export default function TransaccionConsulta({ navigate }: TransaccionConsultaPro
 
     try {
       const txn = await TransaccionService.consultarPorUuid(uuid.trim());
-      
-      // Validar que la respuesta sea un arreglo con elementos
       if (Array.isArray(txn) && txn.length > 0) {
         setResultados(txn);
       } else {

@@ -14,7 +14,6 @@ interface SucursalesListProps {
   navigate: (screen: string) => void;
 }
 
-// Datos de respaldo cuando el backend no está disponible
 const SUCURSALES_FALLBACK: SucursalResponse[] = [
   { id: 1, codigoSucursal: 'BQ-NORTE', nombre: 'Norte', ciudad: 'Quito', direccion: 'Av. Amazonas N12-34', estado: 'ACTIVA' },
   { id: 2, codigoSucursal: 'BQ-SUR', nombre: 'Sur', ciudad: 'Quito', direccion: 'Av. Maldonado S5-67', estado: 'ACTIVA' },
@@ -34,16 +33,12 @@ export default function SucursalesList({ navigate }: SucursalesListProps) {
   const [submitting, setSubmitting] = useState(false);
   const [selectedSucursal, setSelectedSucursal] = useState<SucursalResponse | null>(null);
   const [sucursalToToggle, setSucursalToToggle] = useState<SucursalResponse | null>(null);
-
-  // Estado del formulario
   const [formData, setFormData] = useState<SucursalRequest>({
     codigoSucursal: '',
     nombre: '',
     ciudad: '',
     direccion: '',
   });
-
-  // Cargar sucursales desde la API al montar el componente
   useEffect(() => {
     const cargarSucursales = async () => {
       setLoading(true);
@@ -61,8 +56,6 @@ export default function SucursalesList({ navigate }: SucursalesListProps) {
     };
     cargarSucursales();
   }, []);
-
-  // Handler para crear sucursal
   const handleCrear = async () => {
     if (!formData.nombre || !formData.ciudad) {
       alert('Los campos Nombre y Ciudad son obligatorios.');
@@ -83,8 +76,6 @@ export default function SucursalesList({ navigate }: SucursalesListProps) {
       setSubmitting(false);
     }
   };
-
-  // Handler para editar sucursal
   const handleEditar = (sucursal: SucursalResponse) => {
     setSelectedSucursal(sucursal);
     setFormData({
@@ -95,8 +86,6 @@ export default function SucursalesList({ navigate }: SucursalesListProps) {
     });
     setShowEditModal(true);
   };
-
-  // Handler para guardar edición
   const handleGuardarEdicion = async () => {
     if (!selectedSucursal || !formData.nombre || !formData.ciudad) {
       alert('Los campos Nombre y Ciudad son obligatorios.');
@@ -118,14 +107,10 @@ export default function SucursalesList({ navigate }: SucursalesListProps) {
       setSubmitting(false);
     }
   };
-
-  // Handler para abrir modal de confirmación de cambio de estado
   const handleAbrirConfirmacionEstado = (sucursal: SucursalResponse) => {
     setSucursalToToggle(sucursal);
     setShowConfirmModal(true);
   };
-
-  // Handler para cambiar estado de sucursal
   const handleCambiarEstado = async () => {
     if (!sucursalToToggle) return;
 
@@ -160,7 +145,6 @@ export default function SucursalesList({ navigate }: SucursalesListProps) {
         <p className="text-gray-600">Gestión de sucursales del banco</p>
       </div>
 
-      {/* Banner de error/fallback */}
       {error && (
         <div className="mb-4 p-3 bg-yellow-50 border border-yellow-300 rounded-lg text-sm text-yellow-800">
           ⚠️ {error}
@@ -173,7 +157,6 @@ export default function SucursalesList({ navigate }: SucursalesListProps) {
             <CardTitle className="text-[#0D1B4B]">Listado de Sucursales</CardTitle>
             <button
               onClick={() => {
-                // Calcular el siguiente código basado en el ID más alto
                 const maxId = sucursales.length > 0 ? Math.max(...sucursales.map(s => s.id)) : 0;
                 const siguienteCodigo = String(maxId + 1).padStart(3, '0');
                 setFormData({ codigoSucursal: siguienteCodigo, nombre: '', ciudad: '', direccion: '' });

@@ -48,8 +48,6 @@ export default function TransaccionCredito({ navigate }: TransaccionCreditoProps
     descripcion: string;
     uuid: string;
   } | null>(null);
-
-  // ── Cargar subtipos de transacción al montar el componente ─────────────────────
   useEffect(() => {
     const cargarSubtipos = async () => {
       setCargandoSubtipos(true);
@@ -80,8 +78,6 @@ export default function TransaccionCredito({ navigate }: TransaccionCreditoProps
     setErrores(nuevos);
     return Object.keys(nuevos).length === 0;
   };
-
-  // ── Cargar información de cuenta y cliente destino ─────────────────────
   useEffect(() => {
     const cargarCuentaDestino = async () => {
       if (!formData.cuentaDestino.trim()) {
@@ -105,20 +101,15 @@ export default function TransaccionCredito({ navigate }: TransaccionCreditoProps
           status: cliente.estado as any
         };
         setClienteDestino(clienteObj);
-        
-        // Usar función pura de validación (aislada del canal de pagos masivos)
         const validation = validateCreditManualForm(clienteObj, cuentaObj);
         
         if (!validation.isValid) {
-          // Error crítico: bloquea la operación
           setErrorCritico(validation.message || 'Error de validación');
           setAdvertenciaInfo(null);
         } else if (validation.isWarning) {
-          // Advertencia informativa: permite continuar
           setAdvertenciaInfo(validation.message);
           setErrorCritico(null);
         } else {
-          // Todo está bien
           setAdvertenciaInfo(null);
           setErrorCritico(null);
         }
@@ -145,7 +136,6 @@ export default function TransaccionCredito({ navigate }: TransaccionCreditoProps
       return;
     }
 
-    // Validación de bloqueo crítico (cliente suspendido/bloqueado o cuenta suspendida)
     if (errorCritico) {
       setErrorGeneral(errorCritico);
       return;

@@ -17,8 +17,6 @@ export default function FeriadosCalendario({ navigate }: FeriadosCalendarioProps
   const [feriados, setFeriados] = useState<FeriadoResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Modal agregar feriado
   const [showModal, setShowModal] = useState(false);
   const [guardando, setGuardando] = useState(false);
   const [formData, setFormData] = useState({

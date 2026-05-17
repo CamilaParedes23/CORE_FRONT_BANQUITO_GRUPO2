@@ -5,41 +5,24 @@ import Login from './components/Login';
 import Dashboard from './components/Dashboard';
 import { LogOut } from 'lucide-react';
 
-// Módulo 2: Usuarios Core
 import UsuariosCoreList from './components/modulo2/UsuariosCoreList';
-
-// Módulo 4: Sucursales
 import SucursalesList from './components/modulo4/SucursalesList';
-
-// Módulo 5: Clientes
 import ClienteNaturalLista from './components/modulo5/ClienteNaturalLista';
 import ClienteJuridicoLista from './components/modulo5/ClienteJuridicoLista';
 import ClientesBusqueda from './components/modulo5/ClientesBusqueda';
 import ClienteFicha from './components/modulo5/ClienteFicha';
 import ClienteNaturalForm from './components/modulo5/ClienteNaturalForm';
 import ClienteJuridicoForm from './components/modulo5/ClienteJuridicoForm';
-
-// Módulo 6: Cuentas
 import CuentasList from './components/modulo6/CuentasList';
 import CuentaFicha from './components/modulo6/CuentaFicha';
 import CuentaAperturaForm from './components/modulo6/CuentaAperturaForm';
-
-// Módulo 8: Transacciones
 import TransaccionDebito from './components/modulo8/TransaccionDebito';
 import TransaccionCredito from './components/modulo8/TransaccionCredito';
 import TransaccionTransferencia from './components/modulo8/TransaccionTransferencia';
 import TransaccionConsulta from './components/modulo8/TransaccionConsulta';
-
-// Módulo 9: Cuentas Institucionales
 import CuentasInstitucionalesList from './components/modulo9/CuentasInstitucionalesList';
-
-// Módulo 10: Feriados
 import FeriadosCalendario from './components/modulo10/FeriadosCalendario';
-
-// Módulo 11: Parámetros
 import ParametrosList from './components/modulo11/ParametrosList';
-
-// Módulo 12: Auditoría
 import AuditoriaBitacora from './components/modulo12/AuditoriaBitacora';
 
 function AppContent() {
@@ -122,7 +105,6 @@ function AppContent() {
 
   return (
     <div className="size-full flex bg-gray-50">
-      {/* Sidebar */}
       <aside className="w-64 bg-[#0D1B4B] text-white flex flex-col flex-shrink-0" style={{ minHeight: '100vh' }}>
         <div className="p-6 border-b border-white/10 flex-shrink-0">
           <div className="flex items-center gap-3 mb-2">
@@ -185,7 +167,6 @@ function AppContent() {
         </div>
       </aside>
 
-      {/* Main Content */}
       <main className="flex-1 overflow-auto">
         {renderScreen()}
       </main>

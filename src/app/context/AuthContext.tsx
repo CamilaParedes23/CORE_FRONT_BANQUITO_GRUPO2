@@ -30,14 +30,12 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    // Limpiar localStorage al inicio para forzar siempre el login
     localStorage.removeItem('banquito_token');
     localStorage.removeItem('banquito_user');
   }, []);
 
   const login = async (usuario: string, password: string) => {
     if (config.mockAuthEnabled) {
-      // Usuarios mock alineados con seed BD (banquito_core_seed_funcional_v3.sql)
       const MOCK_USERS: Record<string, { nombreCompleto: string; rol: UserRole; sucursal: { id: string; nombre: string } }> = {
         'admin':          { nombreCompleto: 'Administrador General Core BanQuito', rol: 'ADMIN_CORE',         sucursal: { id: '1', nombre: 'Sucursal Quito Norte' } },
         'cajero.norte':   { nombreCompleto: 'Carolina Andrade - Cajera Norte',     rol: 'CAJERO',             sucursal: { id: '1', nombre: 'Sucursal Quito Norte' } },
@@ -66,7 +64,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       setToken(mockToken);
       setUser(mockUser);
     } else {
-      // Autenticación real contra la API
       const response = await fetch(`${config.apiBaseUrl}/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -78,8 +75,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
       }
 
       const data = await response.json();
-
-      // El backend devuelve ApiResponse<LoginResponse>, necesitamos extraer los datos
       const loginData = data.data || data;
       
       const mockToken = `jwt_real_${Date.now()}`;
@@ -88,7 +83,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         nombreCompleto: loginData.nombre,
         usuario: loginData.usuario,
         rol: loginData.rol as UserRole,
-        sucursal: undefined, // El backend no devuelve sucursal en LoginResponse
+        sucursal: undefined,
       };
 
       localStorage.setItem('banquito_token', mockToken);

@@ -9,9 +9,6 @@ interface ClienteNaturalFormProps {
   navigate: (screen: string, id?: string) => void;
 }
 
-// Subtipo IDs del backend (SUBTIPO_CLIENTE table):
-// 1 = NAT_MASIVO  (NATURAL - Retail)
-// 2 = NAT_ALTO_VALOR (NATURAL - Preferente/Premium)
 const SUBTIPO_MAP: Record<string, number> = {
   RETAIL: 1,
   PREFERENTE: 2,
@@ -34,9 +31,6 @@ export default function ClienteNaturalForm({ navigate }: ClienteNaturalFormProps
   const [guardando, setGuardando] = useState(false);
   const [errores, setErrores] = useState<Record<string, string>>({});
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
-
-  // ── Validaciones ──────────────────────────────────────────────────────────
-
   const validar = (): boolean => {
     const nuevosErrores: Record<string, string> = {};
 
@@ -76,9 +70,6 @@ export default function ClienteNaturalForm({ navigate }: ClienteNaturalFormProps
     setErrores(nuevosErrores);
     return Object.keys(nuevosErrores).length === 0;
   };
-
-  // ── Submit ────────────────────────────────────────────────────────────────
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorGeneral(null);
@@ -111,9 +102,6 @@ export default function ClienteNaturalForm({ navigate }: ClienteNaturalFormProps
       setGuardando(false);
     }
   };
-
-  // ── Render ────────────────────────────────────────────────────────────────
-
   const campo = (
     campo: keyof typeof errores,
     children: React.ReactNode

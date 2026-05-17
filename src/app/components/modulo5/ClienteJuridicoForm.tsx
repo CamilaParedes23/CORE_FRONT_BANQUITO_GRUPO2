@@ -10,9 +10,6 @@ interface ClienteJuridicoFormProps {
   navigate: (screen: string, id?: string) => void;
 }
 
-// Subtipo IDs del backend (SUBTIPO_CLIENTE table):
-// 3 = JUR_PYME       (JURIDICO - PYME / Gobierno)
-// 4 = JUR_CORPORATIVO (JURIDICO - Corporativo)
 const SUBTIPO_MAP: Record<string, number> = {
   PYME: 3,
   GOBIERNO: 3,
@@ -34,15 +31,10 @@ export default function ClienteJuridicoForm({ navigate }: ClienteJuridicoFormPro
   const [guardando, setGuardando] = useState(false);
   const [errores, setErrores] = useState<Record<string, string>>({});
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
-  
-  // Estado para búsqueda de representante legal
   const [busquedaCedula, setBusquedaCedula] = useState('');
   const [resultadosBusqueda, setResultadosBusqueda] = useState<ClienteResponse[]>([]);
   const [representanteSeleccionado, setRepresentanteSeleccionado] = useState<ClienteResponse | null>(null);
   const [buscandoRepresentante, setBuscandoRepresentante] = useState(false);
-
-  // ── Validaciones ──────────────────────────────────────────────────────────
-
   const validar = (): boolean => {
     const nuevosErrores: Record<string, string> = {};
 
@@ -112,9 +104,6 @@ export default function ClienteJuridicoForm({ navigate }: ClienteJuridicoFormPro
     setRepresentanteSeleccionado(null);
     setFormData({ ...formData, representanteLegalId: '' });
   };
-
-  // ── Submit ────────────────────────────────────────────────────────────────
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorGeneral(null);
@@ -147,8 +136,6 @@ export default function ClienteJuridicoForm({ navigate }: ClienteJuridicoFormPro
       setGuardando(false);
     }
   };
-
-  // ── Render ────────────────────────────────────────────────────────────────
 
   const campo = (
     key: keyof typeof errores,

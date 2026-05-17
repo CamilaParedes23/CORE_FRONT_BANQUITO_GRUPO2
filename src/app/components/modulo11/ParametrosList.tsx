@@ -25,8 +25,6 @@ export default function ParametrosList({ navigate }: ParametrosListProps) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
-
-  // Estado para formulario de creación
   const [createFormData, setCreateFormData] = useState<ParametroCoreRequest>({
     codigo: '',
     nombre: '',

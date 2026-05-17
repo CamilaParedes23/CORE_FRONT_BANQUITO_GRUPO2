@@ -31,8 +31,6 @@ export default function CuentaFicha({ navigate, numeroCuenta }: CuentaFichaProps
   const [error, setError] = useState<string | null>(null);
   const [cliente, setCliente] = useState<ClienteResponse | null>(null);
   const [sucursal, setSucursal] = useState<SucursalResponse | null>(null);
-
-  // Estados para modales
   const [showEstadoModal, setShowEstadoModal] = useState(false);
   const [showBloqueoModal, setShowBloqueoModal] = useState(false);
   const [estadoFormData, setEstadoFormData] = useState({
@@ -72,8 +70,6 @@ export default function CuentaFicha({ navigate, numeroCuenta }: CuentaFichaProps
         setCuenta(cuentaData);
         setSaldo(saldoData);
         cargarMovimientos(numeroCuenta);
-
-        // Cargar cliente y sucursal
         if (cuentaData.clienteId) {
           ClienteService.obtenerPorId(cuentaData.clienteId)
             .then(setCliente)
@@ -117,7 +113,6 @@ export default function CuentaFicha({ navigate, numeroCuenta }: CuentaFichaProps
   const saldoDisponible = saldo ? Number(saldo.saldoDisponible) : Number(cuenta.saldoDisponible);
   const totalBloqueado = saldoContable - saldoDisponible;
 
-  // Handlers para modales
   const handleAbrirEstadoModal = () => {
     if (!cuenta) return;
     const opciones = ['ACTIVA', 'INACTIVA', 'BLOQUEADA', 'SUSPENDIDA'] as const;
@@ -151,7 +146,6 @@ export default function CuentaFicha({ navigate, numeroCuenta }: CuentaFichaProps
       const actualizada = await CuentaService.cambiarEstado(cuenta.id, data);
       setCuenta(actualizada);
       setShowEstadoModal(false);
-      // Recargar saldo
       if (numeroCuenta) {
         const saldoData = await CuentaService.obtenerSaldo(numeroCuenta);
         setSaldo(saldoData);
@@ -197,7 +191,6 @@ export default function CuentaFicha({ navigate, numeroCuenta }: CuentaFichaProps
       };
       await CuentaService.crearBloqueo(cuenta.id, data);
       setShowBloqueoModal(false);
-      // Recargar saldo
       if (numeroCuenta) {
         const saldoData = await CuentaService.obtenerSaldo(numeroCuenta);
         setSaldo(saldoData);

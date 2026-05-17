@@ -1,12 +1,5 @@
-// ============================================================================
-// Utilidades de Validación para Transacciones
-// ============================================================================
-
-// Tipos de estados
 export type CustomerStatus = 'ACTIVO' | 'SUSPENDIDO' | 'BLOQUEADO';
 export type AccountStatus = 'ACTIVA' | 'INACTIVA' | 'BLOQUEADA' | 'SUSPENDIDA';
-
-// Interfaces
 export interface Customer {
   status: CustomerStatus;
 }
@@ -27,13 +20,6 @@ export interface CreditManualValidationResult {
   message: string | null;
 }
 
-// ============================================================================
-// Funciones de Validación Base
-// ============================================================================
-
-/**
- * Valida si un cliente puede realizar cualquier operación
- */
 export function validarCliente(customer: Customer): ValidationResult {
   if (customer.status === 'SUSPENDIDO' || customer.status === 'BLOQUEADO') {
     return {
@@ -44,9 +30,6 @@ export function validarCliente(customer: Customer): ValidationResult {
   return { isValid: true, errorMessage: '' };
 }
 
-/**
- * Valida si una cuenta puede ser ORIGEN para débito
- */
 export function validarCuentaOrigen(account: Account, amount: number): ValidationResult {
   if (account.status === 'ACTIVA') {
     if (amount > account.available_balance) {
@@ -82,21 +65,16 @@ export function validarCuentaOrigen(account: Account, amount: number): Validatio
   return { isValid: false, errorMessage: 'Estado de cuenta desconocido.' };
 }
 
-/**
- * Valida si una cuenta puede ser DESTINO para crédito
- */
 export function validarCuentaDestino(account: Account): ValidationResult {
   if (account.status === 'ACTIVA') {
     return { isValid: true, errorMessage: '' };
   }
   
   if (account.status === 'INACTIVA') {
-    // Permite crédito en cuentas inactivas
     return { isValid: true, errorMessage: '' };
   }
   
   if (account.status === 'BLOQUEADA') {
-    // Permite crédito en cuentas bloqueadas
     return { isValid: true, errorMessage: '' };
   }
   
@@ -110,50 +88,29 @@ export function validarCuentaDestino(account: Account): ValidationResult {
   return { isValid: false, errorMessage: 'Estado de cuenta desconocido.' };
 }
 
-// ============================================================================
-// Validaciones por Tipo de Operación
-// ============================================================================
-
-/**
- * Validación para Débito Manual (Retiros/Salidas)
- * Solo usa cuenta ORIGEN
- */
 export function validarDebitoManual(
   customer: Customer,
   account: Account,
   amount: number
 ): ValidationResult {
-  // Validar cliente primero
   const clienteValido = validarCliente(customer);
   if (!clienteValido.isValid) {
     return clienteValido;
   }
-  
-  // Validar cuenta origen
   return validarCuentaOrigen(account, amount);
 }
 
-/**
- * Validación para Crédito Manual (Depósitos/Entradas)
- * Solo usa cuenta DESTINO
- */
 export function validarCreditoManual(
   customer: Customer,
   account: Account
 ): ValidationResult {
-  // Validar cliente primero
   const clienteValido = validarCliente(customer);
   if (!clienteValido.isValid) {
     return clienteValido;
   }
-  
-  // Validar cuenta destino
   return validarCuentaDestino(account);
 }
 
-/**
- * Validación para Transferencia (Origen y Destino)
- */
 export function validarTransferencia(
   customerOrigen: Customer,
   accountOrigen: Account,
@@ -161,25 +118,20 @@ export function validarTransferencia(
   accountDestino: Account,
   amount: number
 ): ValidationResult {
-  // Validar cliente origen
   const clienteOrigenValido = validarCliente(customerOrigen);
   if (!clienteOrigenValido.isValid) {
     return clienteOrigenValido;
   }
   
-  // Validar cliente destino
   const clienteDestinoValido = validarCliente(customerDestino);
   if (!clienteDestinoValido.isValid) {
     return clienteDestinoValido;
   }
   
-  // Validar cuenta origen (con verificación de saldo)
   const cuentaOrigenValida = validarCuentaOrigen(accountOrigen, amount);
   if (!cuentaOrigenValida.isValid) {
     return cuentaOrigenValida;
   }
-  
-  // Validar cuenta destino
   const cuentaDestinoValida = validarCuentaDestino(accountDestino);
   if (!cuentaDestinoValida.isValid) {
     return cuentaDestinoValida;
@@ -188,35 +140,20 @@ export function validarTransferencia(
   return { isValid: true, errorMessage: '' };
 }
 
-// ============================================================================
-// Utilidades de UI para Control de Formularios
-// ============================================================================
-
-/**
- * Determina si el formulario de Débito Manual debe estar completamente bloqueado
- */
 export function debeBloquearFormularioDebito(customer: Customer, account: Account): boolean {
   const clienteValido = validarCliente(customer);
   if (!clienteValido.isValid) return true;
   
-  // Bloquear si cuenta no permite débito (INACTIVA, BLOQUEADA, SUSPENDIDA)
   return account.status !== 'ACTIVA';
 }
 
-/**
- * Determina si el formulario de Crédito Manual debe estar completamente bloqueado
- */
 export function debeBloquearFormularioCredito(customer: Customer, account: Account): boolean {
   const clienteValido = validarCliente(customer);
   if (!clienteValido.isValid) return true;
   
-  // Bloquear solo si cuenta está suspendida
   return account.status === 'SUSPENDIDA';
 }
 
-/**
- * Determina si el formulario de Transferencia debe estar completamente bloqueado
- */
 export function debeBloquearFormularioTransferencia(
   customerOrigen: Customer,
   accountOrigen: Account,
@@ -229,33 +166,23 @@ export function debeBloquearFormularioTransferencia(
   const clienteDestinoValido = validarCliente(customerDestino);
   if (!clienteDestinoValido.isValid) return true;
   
-  // Bloquear si cuenta origen no permite débito o cuenta destino suspendida
   const cuentaOrigenValida = validarCuentaOrigen(accountOrigen, 0);
   const cuentaDestinoValida = validarCuentaDestino(accountDestino);
   
   return !cuentaOrigenValida.isValid || !cuentaDestinoValida.isValid;
 }
 
-/**
- * Determina si el campo de monto debe estar deshabilitado
- * (para evitar que el usuario escriba en cuentas inválidas)
- */
 export function debeDeshabilitarCampoMonto(customer: Customer, account: Account, esOperacionDebito: boolean): boolean {
   const clienteValido = validarCliente(customer);
   if (!clienteValido.isValid) return true;
   
   if (esOperacionDebito) {
-    // Para débito, deshabilitar si cuenta no es ACTIVA
     return account.status !== 'ACTIVA';
   } else {
-    // Para crédito, deshabilitar solo si cuenta está SUSPENDIDA
     return account.status === 'SUSPENDIDA';
   }
 }
 
-/**
- * Obtiene el mensaje de advertencia a mostrar en el formulario
- */
 export function obtenerMensajeAdvertencia(customer: Customer, account: Account, esOperacionDebito: boolean): string | null {
   const clienteValido = validarCliente(customer);
   if (!clienteValido.isValid) {
@@ -287,38 +214,10 @@ export function obtenerMensajeAdvertencia(customer: Customer, account: Account, 
   return null;
 }
 
-// ============================================================================
-// Validación Pura para Crédito Manual (Canal Retail Aislado)
-// ============================================================================
-
-/**
- * Función pura de validación para el formulario de Crédito Manual (Depósitos).
- * 
- * Esta función está completamente aislada del canal corporativo de Pagos Masivos.
- * Solo evalúa el estado del cliente y de la cuenta destino según las reglas del Core.
- * 
- * @param customer - Objeto cliente con status ('ACTIVO' | 'SUSPENDIDO' | 'BLOQUEADO')
- * @param account - Objeto cuenta con status ('ACTIVA' | 'INACTIVA' | 'BLOQUEADA' | 'SUSPENDIDA')
- * @returns Objeto con:
- *   - isValid: true si la transacción puede proceder, false si debe bloquearse
- *   - isWarning: true si es solo una advertencia informativa (permite continuar)
- *   - message: Mensaje de error o advertencia, null si no hay mensaje
- * 
- * @example
- * const result = validateCreditManualForm(customer, account);
- * if (!result.isValid) {
- *   // Mostrar error en rojo, deshabilitar botón
- * } else if (result.isWarning) {
- *   // Mostrar advertencia en naranja, mantener botón habilitado
- * } else {
- *   // Todo está bien, permitir operación
- * }
- */
 export function validateCreditManualForm(
   customer: Customer,
   account: Account
 ): CreditManualValidationResult {
-  // 1. Validación del Cliente (Prioridad #1)
   if (customer.status === 'SUSPENDIDO' || customer.status === 'BLOQUEADO') {
     return {
       isValid: false,
@@ -327,7 +226,6 @@ export function validateCreditManualForm(
     };
   }
   
-  // 2. Validación de la Cuenta (Prioridad #2)
   if (account.status === 'SUSPENDIDA') {
     return {
       isValid: false,
@@ -337,7 +235,6 @@ export function validateCreditManualForm(
   }
   
   if (account.status === 'BLOQUEADA') {
-    // Cuenta bloqueada: PERMITE créditos (solo restringe salidas)
     return {
       isValid: true,
       isWarning: true,
@@ -346,7 +243,6 @@ export function validateCreditManualForm(
   }
   
   if (account.status === 'INACTIVA') {
-    // Cuenta inactiva: PERMITE créditos (para reactivar)
     return {
       isValid: true,
       isWarning: true,
@@ -354,7 +250,6 @@ export function validateCreditManualForm(
     };
   }
   
-  // Cuenta ACTIVA: Todo está bien
   return {
     isValid: true,
     isWarning: false,

@@ -16,7 +16,6 @@ interface UsuariosCoreListProps {
 const ROLES = ['CAJERO', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE', 'AUDITOR'];
 
 export default function UsuariosCoreList({ navigate }: UsuariosCoreListProps) {
-  // Búsqueda
   const [usernameBuscado, setUsernameBuscado] = useState('');
   const [usuarios, setUsuarios] = useState<UsuarioCoreResponse[]>([]);
   const [loading, setLoading] = useState(false);
@@ -36,12 +35,8 @@ export default function UsuariosCoreList({ navigate }: UsuariosCoreListProps) {
     sucursalId: '',
   });
   const [formErrores, setFormErrores] = useState<Record<string, string>>({});
-  
-  // Sucursales
   const [sucursales, setSucursales] = useState<SucursalResponse[]>([]);
   const [cargandoSucursales, setCargandoSucursales] = useState(false);
-
-  // Cargar sucursales al montar el componente
   useEffect(() => {
     const cargarSucursales = async () => {
       setCargandoSucursales(true);
@@ -56,8 +51,6 @@ export default function UsuariosCoreList({ navigate }: UsuariosCoreListProps) {
     };
     cargarSucursales();
   }, []);
-
-  // Helper para obtener nombre de sucursal por ID
   const getNombreSucursal = (sucursalId?: number): string => {
     if (!sucursalId) return '—';
     const sucursal = sucursales.find(s => s.id === sucursalId);
