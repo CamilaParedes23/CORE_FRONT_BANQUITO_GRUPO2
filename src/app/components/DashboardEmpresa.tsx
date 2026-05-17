@@ -42,6 +42,7 @@ export default function DashboardEmpresa({ navigate }: DashboardEmpresaProps) {
   const [paginaCuentas, setPaginaCuentas] = useState(1);
   const [paginaMovimientos, setPaginaMovimientos] = useState(1);
   const [busquedaCuentas, setBusquedaCuentas] = useState('');
+  const [errorBusquedaCuentas, setErrorBusquedaCuentas] = useState<string | null>(null);
   const elementosPorPaginaCuentas = 5;
   const elementosPorPaginaMovimientos = 10;
 
@@ -153,6 +154,7 @@ export default function DashboardEmpresa({ navigate }: DashboardEmpresaProps) {
 
   useEffect(() => {
     setPaginaCuentas(1);
+    setErrorBusquedaCuentas(null);
   }, [busquedaCuentas]);
 
   const cuentasFiltradas = cuentas.filter((cuenta) =>
@@ -259,7 +261,7 @@ export default function DashboardEmpresa({ navigate }: DashboardEmpresaProps) {
                         colSpan={4}
                         className="py-8 text-center text-slate-500"
                       >
-                        {busquedaCuentas ? 'No se encontraron cuentas que coincidan con la búsqueda' : 'No se encontraron cuentas para esta empresa'}
+                        {busquedaCuentas ? 'La cuenta buscada no pertenece a esta empresa o no existe en el sistema' : 'No se encontraron cuentas para esta empresa'}
                       </td>
                     </tr>
                   )}
