@@ -36,7 +36,7 @@ export default function CuentaFicha({ navigate, numeroCuenta }: CuentaFichaProps
   const [showEstadoModal, setShowEstadoModal] = useState(false);
   const [showBloqueoModal, setShowBloqueoModal] = useState(false);
   const [estadoFormData, setEstadoFormData] = useState({
-    nuevoEstado: 'ACTIVA' as 'ACTIVA' | 'INACTIVA' | 'BLOQUEADA' | 'SUSPENDIDA',
+    nuevoEstado: '' as 'ACTIVA' | 'INACTIVA' | 'BLOQUEADA' | 'SUSPENDIDA',
     motivoCambio: '',
   });
   const [bloqueoFormData, setBloqueoFormData] = useState({
@@ -391,16 +391,31 @@ export default function CuentaFicha({ navigate, numeroCuenta }: CuentaFichaProps
               </select>
             </div>
             <div>
-              <Label>Motivo *</Label>
-              <Input
+              <Label>Motivo del Cambio *</Label>
+              <select
                 value={estadoFormData.motivoCambio}
                 onChange={(e) => {
                   setEstadoFormData({ ...estadoFormData, motivoCambio: e.target.value });
                   setFormErrores((prev) => ({ ...prev, motivoCambio: '' }));
                 }}
-                className={`mt-2 ${formErrores.motivoCambio ? 'border-red-400' : ''}`}
-                placeholder="Ingrese el motivo del cambio de estado"
-              />
+                disabled={!estadoFormData.nuevoEstado}
+                className={`w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#0D1B4B]/40 disabled:bg-gray-100 disabled:cursor-not-allowed ${formErrores.motivoCambio ? 'border-red-400' : ''}`}
+              >
+                <option value="">Seleccione un motivo...</option>
+                {estadoFormData.nuevoEstado === 'BLOQUEADA' && (
+                  <option value="RETENCION_JUDICIAL_ADMINISTRATIVA">Retención Judicial o Administrativa</option>
+                )}
+                {estadoFormData.nuevoEstado === 'SUSPENDIDA' && (
+                  <option value="SOSPECHA_FRAUDE">Sospecha de Fraude en el Producto</option>
+                )}
+                {(estadoFormData.nuevoEstado === 'ACTIVA' || estadoFormData.nuevoEstado === 'INACTIVA') && (
+                  <>
+                    <option value="ACTUALIZACION_DATOS">Actualización de datos del cliente</option>
+                    <option value="REGULARIZACION_SALDO">Regularización de saldo</option>
+                    <option value="SOLICITUD_TITULAR">Solicitud formal del titular</option>
+                  </>
+                )}
+              </select>
               {formErrores.motivoCambio && <p className="text-xs text-red-600 mt-1">{formErrores.motivoCambio}</p>}
             </div>
             {formErrores.general && <p className="text-xs text-red-600 mt-2">{formErrores.general}</p>}
