@@ -13,7 +13,7 @@ interface UsuariosCoreListProps {
   navigate: (screen: string) => void;
 }
 
-const ROLES = ['CAJERO', 'OPERADOR', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE', 'AUDITOR'];
+const ROLES = ['CAJERO', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE', 'AUDITOR'];
 
 export default function UsuariosCoreList({ navigate }: UsuariosCoreListProps) {
   // Búsqueda

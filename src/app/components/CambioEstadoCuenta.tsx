@@ -35,7 +35,7 @@ export default function CambioEstadoCuenta({ navigate, cuentaNumero }: CambioEst
       estadoAnterior: 'NUEVA',
       estadoNuevo: 'ACTIVA',
       motivo: 'Apertura inicial',
-      usuario: 'operador.matriz',
+      usuario: 'cajero.norte',
     },
   ];
 
@@ -139,7 +139,7 @@ export default function CambioEstadoCuenta({ navigate, cuentaNumero }: CambioEst
               <input
                 id="usuario"
                 type="text"
-                value="Juan Pérez (Operador)"
+                value="Juan Pérez (Cajero)"
                 disabled
                 className="w-full mt-2 px-3 py-2 border border-gray-300 rounded-lg bg-gray-100 text-gray-600"
               />

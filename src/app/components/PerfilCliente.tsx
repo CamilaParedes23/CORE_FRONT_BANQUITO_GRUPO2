@@ -64,7 +64,7 @@ export default function PerfilCliente({ navigate, clienteId }: PerfilClienteProp
     },
     {
       fecha: '2024-01-15 09:00',
-      usuario: 'operador.matriz',
+      usuario: 'cajero.norte',
       campo: 'Registro Inicial',
       valorAnterior: '-',
       valorNuevo: 'Cliente creado',
