@@ -54,8 +54,6 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
     uuid: string;
     nombreBeneficiario: string;
   } | null>(null);
-
-  // ── Validaciones ────────────────────────────────────────────────────────────
   const validar = (): boolean => {
     const nuevos: Record<string, string> = {};
     if (!formData.cuentaOrigen.trim()) nuevos.cuentaOrigen = 'La cuenta a debitar es obligatoria.';
@@ -68,8 +66,6 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
     setErrores(nuevos);
     return Object.keys(nuevos).length === 0;
   };
-
-  // ── Cargar subtipos de transacción al montar el componente ─────────────────────
   useEffect(() => {
     const cargarSubtipos = async () => {
       setCargandoSubtipos(true);
@@ -87,8 +83,6 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
     };
     cargarSubtipos();
   }, []);
-
-  // ── Cargar información de cuenta y cliente ───────────────────────────────
   useEffect(() => {
     const cargarCuentaOrigen = async () => {
       if (!formData.cuentaOrigen.trim()) {
@@ -116,8 +110,6 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
     };
     cargarCuentaOrigen();
   }, [formData.cuentaOrigen]);
-
-  // ── Submit ──────────────────────────────────────────────────────────────────
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorGeneral(null);
@@ -128,8 +120,6 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
       setErrorGeneral('No se pudo cargar la información de la cuenta origen.');
       return;
     }
-
-    // Validar usando las funciones de validación
     const validation = validarDebitoManual(
       clienteOrigen,
       cuentaOrigen,
@@ -159,12 +149,12 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
         cuentaOrigen: snapshotFormData.cuentaOrigen.trim(),
         cuentaDestino: snapshotFormData.cuentaDestino.trim(),
         monto: Number(snapshotFormData.monto),
-        comision: 0, // Se actualizará cuando el backend proporcione este valor
+        comision: 0,
         subtipo: snapshotFormData.subtipo,
         descripcion: snapshotFormData.descripcion.trim(),
         saldoDisponible: Number(resp.saldoDisponibleOrigen),
         uuid,
-        nombreBeneficiario: 'Cliente Beneficiario', // Se actualizará cuando el backend proporcione este valor
+        nombreBeneficiario: 'Cliente Beneficiario',
       });
 
       setFormData({ cuentaOrigen: '', cuentaDestino: '', subtipo: 'RETIRO_CAJERO', monto: '', descripcion: '' });

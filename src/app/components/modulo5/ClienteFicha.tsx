@@ -23,15 +23,11 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
   const [cuentas, setCuentas] = useState<CuentaResponse[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  // Estados para los modales
   const [showConfirmStateChange, setShowConfirmStateChange] = useState(false);
   const [nuevoEstadoSeleccionado, setNuevoEstadoSeleccionado] = useState('');
   const [showInfoDialog, setShowInfoDialog] = useState(false);
   const [infoMessage, setInfoMessage] = useState('');
   const [infoTitle, setInfoTitle] = useState('');
-
-  // Estado para modal de edición
   const [showEditModal, setShowEditModal] = useState(false);
   const [editFormData, setEditFormData] = useState({
     nombres: '',
@@ -44,8 +40,6 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
   });
   const [editSubmitting, setEditSubmitting] = useState(false);
   const [editErrores, setEditErrores] = useState<Record<string, string>>({});
-
-  // Buscador de cuentas
   const [busquedaCuenta, setBusquedaCuenta] = useState('');
 
   useEffect(() => {
@@ -70,7 +64,6 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
 
   const handleCambiarEstadoClick = () => {
     if (!cliente) return;
-    // Pre-seleccionar el estado "opuesto" al actual
     const opciones = ['ACTIVO', 'INACTIVO', 'SUSPENDIDO'];
     const siguiente = opciones.find(e => e !== cliente.estado) || 'INACTIVO';
     setNuevoEstadoSeleccionado(siguiente);
@@ -111,7 +104,6 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
   const handleGuardarEdicion = async () => {
     if (!cliente) return;
 
-    // Validaciones
     const nuevosErrores: Record<string, string> = {};
     if (!editFormData.email.trim()) nuevosErrores.email = 'El correo es obligatorio.';
     else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editFormData.email.trim())) nuevosErrores.email = 'Ingrese un correo válido.';

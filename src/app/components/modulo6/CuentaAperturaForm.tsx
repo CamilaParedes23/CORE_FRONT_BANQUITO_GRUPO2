@@ -14,10 +14,6 @@ interface CuentaAperturaFormProps {
   clienteId?: string;
 }
 
-// SubtiposCuenta del backend (SUBTIPO_CUENTA table):
-// 1 = AHO_STD — Cuenta de Ahorros Estándar
-// 2 = CTE_STD — Cuenta Corriente Estándar
-// 3 = NOM_STD — Cuenta de Nómina
 const SUBTIPOS_CUENTA = [
   { id: 1, nombre: 'Cuenta de Ahorros Estándar' },
   { id: 2, nombre: 'Cuenta Corriente Estándar' },
@@ -38,15 +34,11 @@ export default function CuentaAperturaForm({ navigate, clienteId }: CuentaApertu
   const [abriendo, setAbriendo] = useState(false);
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
   const [errores, setErrores] = useState<Record<string, string>>({});
-
-  // Cargar sucursales al montar
   useEffect(() => {
     SucursalService.listarActivas()
       .then(setSucursales)
       .catch(() => setSucursales([]));
   }, []);
-
-  // Cargar cliente automáticamente si se proporciona clienteId
   useEffect(() => {
     if (clienteId) {
       const id = parseInt(clienteId, 10);
@@ -67,9 +59,6 @@ export default function CuentaAperturaForm({ navigate, clienteId }: CuentaApertu
       }
     }
   }, [clienteId]);
-
-  // ── Buscar cliente ────────────────────────────────────────────────────────
-
   const buscarCliente = async () => {
     if (!identificacion.trim()) return;
     setBuscandoCliente(true);
@@ -90,9 +79,6 @@ export default function CuentaAperturaForm({ navigate, clienteId }: CuentaApertu
       setBuscandoCliente(false);
     }
   };
-
-  // ── Validar y abrir cuenta ────────────────────────────────────────────────
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorGeneral(null);
