@@ -1,13 +1,15 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { config } from '../config/env';
 
-export type UserRole = 'CAJERO' | 'SUPERVISOR_AGENCIA' | 'ADMIN_CORE' | 'AUDITOR';
+export type UserRole = 'CAJERO' | 'SUPERVISOR_AGENCIA' | 'ADMIN_CORE' | 'AUDITOR' | 'EMPRESA';
 
 interface User {
   id: string;
   nombreCompleto: string;
   usuario: string;
   rol: UserRole;
+  clienteId?: number;
+  identificacion?: string;
   sucursal?: {
     id: string;
     nombre: string;
@@ -76,13 +78,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
 
       const data = await response.json();
       const loginData = data.data || data;
-      
+
+      let userRole: UserRole = loginData.rol as UserRole;
+
+      if (loginData.tipoCredencial === 'CREDENCIAL_WEB' || loginData.clienteId) {
+        userRole = 'EMPRESA';
+      }
+
       const mockToken = `jwt_real_${Date.now()}`;
       const mockUser: User = {
-        id: String(loginData.usuarioCoreId),
-        nombreCompleto: loginData.nombre,
-        usuario: loginData.usuario,
-        rol: loginData.rol as UserRole,
+        id: String(loginData.usuarioCoreId || loginData.id),
+        nombreCompleto: loginData.nombre || loginData.razonSocial || usuario,
+        usuario: loginData.usuario || usuario,
+        rol: userRole,
+        clienteId: loginData.clienteId,
+        identificacion: loginData.identificacion,
         sucursal: undefined,
       };
 

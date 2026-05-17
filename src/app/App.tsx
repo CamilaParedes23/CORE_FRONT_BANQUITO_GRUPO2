@@ -1,8 +1,9 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { AuthProvider, useAuth } from './context/AuthContext';
 import { config } from './config/env';
 import Login from './components/Login';
 import Dashboard from './components/Dashboard';
+import DashboardEmpresa from './components/DashboardEmpresa';
 import { LogOut } from 'lucide-react';
 
 import UsuariosCoreList from './components/modulo2/UsuariosCoreList';
@@ -30,13 +31,90 @@ function AppContent() {
   const [currentScreen, setCurrentScreen] = useState('dashboard');
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
+  useEffect(() => {
+    console.log('[App] isAuthenticated:', isAuthenticated);
+    console.log('[App] hasRole EMPRESA:', hasRole(['EMPRESA']));
+    console.log('[App] currentScreen:', currentScreen);
+    console.log('[App] user:', user);
+
+    if (isAuthenticated && hasRole(['EMPRESA']) && currentScreen !== 'empresa-dashboard') {
+      console.log('[App] Redirigiendo a empresa-dashboard');
+      setCurrentScreen('empresa-dashboard');
+    }
+  }, [isAuthenticated, hasRole, currentScreen, user]);
+
   const navigate = (screen: string, id?: string) => {
+    if (hasRole(['EMPRESA'])) {
+      if (screen === 'empresa-dashboard') {
+        setCurrentScreen('empresa-dashboard');
+      }
+      return;
+    }
     setCurrentScreen(screen);
     if (id) setSelectedId(id);
   };
 
   if (!isAuthenticated) {
     return <Login />;
+  }
+
+  if (hasRole(['EMPRESA'])) {
+    console.log('[App] Renderizando DashboardEmpresa para usuario empresa');
+    return (
+      <div className="size-full flex bg-gray-50">
+        <aside className="w-64 bg-[#0D1B4B] text-white flex flex-col flex-shrink-0" style={{ minHeight: '100vh' }}>
+          <div className="p-6 border-b border-white/10 flex-shrink-0">
+            <div className="flex items-center gap-3 mb-2">
+              <div className="w-10 h-10 bg-[#C9A84C] rounded-full flex items-center justify-center flex-shrink-0">
+                <span className="text-lg font-bold text-[#0D1B4B]">{config.appName.substring(0, 2).toUpperCase()}</span>
+              </div>
+              <div>
+                <h1 className="text-lg font-semibold">{config.appName}</h1>
+                <p className="text-xs text-white/70">{config.appSubtitle}</p>
+              </div>
+            </div>
+          </div>
+
+          <nav
+            className="flex-1 p-4 overflow-y-auto"
+            style={{
+              scrollbarWidth: 'thin',
+              scrollbarColor: 'rgba(201,168,76,0.4) transparent',
+            }}
+          >
+            <div className="mt-6 mb-2 px-2">
+              <p className="text-xs font-semibold text-white/50 uppercase tracking-wider">BANCA WEB</p>
+            </div>
+            <button
+              onClick={() => navigate('empresa-dashboard')}
+              className={`w-full text-left px-4 py-3 rounded-lg mb-1 transition-colors text-sm ${
+                currentScreen === 'empresa-dashboard' ? 'bg-[#C9A84C] text-[#0D1B4B] font-semibold' : 'hover:bg-white/10'
+              }`}
+            >
+              Dashboard Corporativo
+            </button>
+          </nav>
+
+          <div className="p-4 border-t border-white/10 flex-shrink-0">
+            <div className="text-sm mb-3">
+              <p className="font-medium">{user?.nombreCompleto}</p>
+              <p className="text-white/70 text-xs mt-1">{user?.rol}</p>
+            </div>
+            <button
+              onClick={logout}
+              className="w-full flex items-center justify-center gap-2 px-4 py-2 bg-red-600 hover:bg-red-700 rounded-lg transition-colors text-sm"
+            >
+              <LogOut className="w-4 h-4" />
+              Cerrar Sesión
+            </button>
+          </div>
+        </aside>
+
+        <main className="flex-1 overflow-auto">
+          <DashboardEmpresa navigate={navigate} />
+        </main>
+      </div>
+    );
   }
 
   const menuItems = [
