@@ -249,7 +249,13 @@ export default function CuentaFicha({ navigate, numeroCuenta }: CuentaFichaProps
               <p className="text-sm text-gray-600">Saldo Disponible</p>
               <RefreshCw
                 className="w-4 h-4 text-gray-400 cursor-pointer hover:text-gray-600"
-                onClick={() => numeroCuenta && cargarMovimientos(numeroCuenta)}
+                onClick={async () => {
+                  if (!numeroCuenta) return;
+                  try {
+                    const saldoData = await CuentaService.obtenerSaldo(numeroCuenta);
+                    setSaldo(saldoData);
+                  } catch {}
+                }}
               />
             </div>
             <p className="text-3xl font-bold text-green-600">${saldoDisponible.toFixed(2)}</p>
@@ -270,10 +276,6 @@ export default function CuentaFicha({ navigate, numeroCuenta }: CuentaFichaProps
             </CardHeader>
             <CardContent>
               <div className="grid grid-cols-2 gap-6 mb-6">
-                <div>
-                  <p className="text-sm text-gray-600 mb-1">ID Subtipo Cuenta</p>
-                  <p className="font-medium">{cuenta.subtipoCuentaId}</p>
-                </div>
                 <div>
                   <p className="text-sm text-gray-600 mb-1">Permite Sobregiro</p>
                   <p className="font-medium">{cuenta.permiteSobregiro ? 'Sí' : 'No'}</p>

@@ -27,6 +27,12 @@ export interface UsuarioCoreRequest {
 }
 
 export const UsuarioCoreService = {
+  listar: () =>
+    get<UsuarioCoreResponse[]>('/usuarios-core'),
+
+  obtenerPorId: (id: number) =>
+    get<UsuarioCoreResponse>(`/usuarios-core/${id}`),
+
   obtenerPorUsername: (username: string) =>
     get<UsuarioCoreResponse>(`/usuarios-core/username/${username}`),
 
