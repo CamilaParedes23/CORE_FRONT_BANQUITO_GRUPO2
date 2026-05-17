@@ -8,7 +8,7 @@ import { Label } from '../ui/label';
 import { RefreshCw } from 'lucide-react';
 import { CuentaService } from '../../services/cuentaService';
 import { TransaccionService } from '../../services/transaccionService';
-import { ClienteService } from '../../services/clienteService';
+import { ClienteService, getNombreCompleto } from '../../services/clienteService';
 import { SucursalService } from '../../services/sucursalService';
 import type { CuentaResponse, SaldoResponse, CambioEstadoData, BloqueoData } from '../../services/cuentaService';
 import type { MovimientoCuentaResponse } from '../../services/transaccionService';
@@ -221,7 +221,7 @@ export default function CuentaFicha({ navigate, numeroCuenta }: CuentaFichaProps
           <div className="flex items-center justify-between">
             <div>
               <CardTitle className="text-2xl text-[#0D1B4B]">Cuenta {cuenta.numeroCuenta}</CardTitle>
-              <p className="text-gray-600 mt-1">Cliente: {cliente?.nombreVisual || 'Cargando...'} | Sucursal: {sucursal?.nombre || 'Cargando...'}</p>
+              <p className="text-gray-600 mt-1">Cliente: {cliente ? getNombreCompleto(cliente) : 'Cargando...'} | Sucursal: {sucursal?.nombre || 'Cargando...'}</p>
             </div>
             <Badge className={String(cuenta.estado) === 'ACTIVA' ? 'bg-green-600' : 'bg-orange-600'}>
               {String(cuenta.estado)}
