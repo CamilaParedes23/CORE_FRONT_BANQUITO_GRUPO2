@@ -12,7 +12,7 @@ interface DetalleTransaccionProps {
 
 export default function DetalleTransaccion({ navigate, transaccionUuid }: DetalleTransaccionProps) {
   const [showReversoModal, setShowReversoModal] = useState(false);
-  const [reversoData, setReversoData] = useState({ motivo: '', usuario: 'Juan Pérez (Operador)' });
+  const [reversoData, setReversoData] = useState({ motivo: '', usuario: 'Juan Pérez (Cajero)' });
   const [reversoGenerado, setReversoGenerado] = useState<string | null>(null);
 
   const transaccionData = {

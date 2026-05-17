@@ -5,7 +5,7 @@ export interface UsuarioCoreResponse {
   sucursalId: number;
   usuario: string;
   nombreCompleto: string;
-  rol: 'CAJERO' | 'OPERADOR' | 'SUPERVISOR_AGENCIA' | 'ADMIN_CORE' | 'AUDITOR';
+  rol: 'CAJERO' | 'SUPERVISOR_AGENCIA' | 'ADMIN_CORE' | 'AUDITOR';
   estado: string;
   ultimoLogin: string;
   fechaCreacion: string;

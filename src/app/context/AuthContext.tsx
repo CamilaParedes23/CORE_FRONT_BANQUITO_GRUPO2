@@ -1,7 +1,7 @@
 import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { config } from '../config/env';
 
-export type UserRole = 'CAJERO' | 'OPERADOR' | 'SUPERVISOR_AGENCIA' | 'ADMIN_CORE' | 'AUDITOR';
+export type UserRole = 'CAJERO' | 'SUPERVISOR_AGENCIA' | 'ADMIN_CORE' | 'AUDITOR';
 
 interface User {
   id: string;
@@ -43,8 +43,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
         'cajero.norte':   { nombreCompleto: 'Carolina Andrade - Cajera Norte',     rol: 'CAJERO',             sucursal: { id: '1', nombre: 'Sucursal Quito Norte' } },
         'supervisor.sur': { nombreCompleto: 'Miguel Cevallos - Supervisor Sur',    rol: 'SUPERVISOR_AGENCIA', sucursal: { id: '2', nombre: 'Sucursal Quito Sur' } },
         'auditor.core':   { nombreCompleto: 'Valeria Morales - Auditoria Core',    rol: 'AUDITOR',            sucursal: { id: '1', nombre: 'Sucursal Quito Norte' } },
-        // OPERADOR no existe en la BD actual — usuario de prueba adicional
-        'operador':       { nombreCompleto: 'Operador de Prueba',                  rol: 'OPERADOR',           sucursal: { id: '3', nombre: 'Sucursal Quito Centro' } },
       };
 
       const key = usuario.toLowerCase().trim();

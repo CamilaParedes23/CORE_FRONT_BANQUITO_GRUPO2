@@ -64,7 +64,7 @@ const TIPO_BADGE: Record<string, string> = {
 };
 
 export default function Dashboard({ navigate }: DashboardProps) {
-  const { user } = useAuth();
+  const { user, hasRole } = useAuth();
   const [totalClientes, setTotalClientes] = useState<number | null>(null);
   const [totalCuentas, setTotalCuentas] = useState<number | null>(null);
   const [saldoTotal, setSaldoTotal] = useState<number | null>(null);
@@ -140,38 +140,38 @@ export default function Dashboard({ navigate }: DashboardProps) {
   ];
 
   const accesoRapido = [
-    {
+    ...(hasRole(['ADMIN_CORE']) ? [{
       label: 'Gestionar Usuarios Core',
       screen: 'usuarios-core',
       icon: UserCheck,
       bg: 'bg-[#0D1B4B]',
       text: 'text-white',
       hover: 'hover:bg-[#1a2d6b]',
-    },
-    {
+    }] : []),
+    ...(hasRole(['ADMIN_CORE']) ? [{
       label: 'Parametrizar Subtipos',
       screen: 'parametros',
       icon: Settings,
       bg: 'bg-[#C9A84C]',
       text: 'text-[#0D1B4B]',
       hover: 'hover:bg-[#b89640]',
-    },
-    {
+    }] : []),
+    ...(hasRole(['ADMIN_CORE', 'AUDITOR']) ? [{
       label: 'Logs de Auditoría',
       screen: 'auditoria',
       icon: ClipboardList,
       bg: 'bg-[#0D1B4B]',
       text: 'text-white',
       hover: 'hover:bg-[#1a2d6b]',
-    },
-    {
+    }] : []),
+    ...(hasRole(['CAJERO', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE', 'AUDITOR']) ? [{
       label: 'Consultar Transacción',
       screen: 'transaccion-consulta',
       icon: Search,
       bg: 'bg-slate-100',
       text: 'text-slate-700',
       hover: 'hover:bg-slate-200',
-    },
+    }] : []),
   ];
 
   return (

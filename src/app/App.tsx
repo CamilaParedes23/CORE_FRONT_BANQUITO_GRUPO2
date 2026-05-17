@@ -57,7 +57,7 @@ function AppContent() {
   }
 
   const menuItems = [
-    { key: 'dashboard', label: 'Dashboard', roles: ['CAJERO', 'OPERADOR', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE', 'AUDITOR'] },
+    { key: 'dashboard', label: 'Dashboard', roles: ['CAJERO', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE', 'AUDITOR'] },
 
     { divider: true, label: 'ADMINISTRACIÓN', roles: ['ADMIN_CORE'] },
     { key: 'usuarios-core', label: 'Usuarios Core', roles: ['ADMIN_CORE'] },
@@ -65,17 +65,17 @@ function AppContent() {
     { key: 'parametros', label: 'Parámetros', roles: ['ADMIN_CORE'] },
     { key: 'feriados', label: 'Feriados', roles: ['ADMIN_CORE'] },
 
-    { divider: true, label: 'OPERACIONES', roles: ['CAJERO', 'OPERADOR', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
-    { key: 'clientes-busqueda', label: 'Buscar Cliente', roles: ['CAJERO', 'OPERADOR', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
-    { key: 'clientes-naturales', label: 'Clientes Naturales', roles: ['OPERADOR', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
-    { key: 'clientes-juridicos', label: 'Clientes Jurídicos', roles: ['OPERADOR', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
-    { key: 'cuentas', label: 'Cuentas', roles: ['CAJERO', 'OPERADOR', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
+    { divider: true, label: 'OPERACIONES', roles: ['CAJERO', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
+    { key: 'clientes-busqueda', label: 'Buscar Cliente', roles: ['CAJERO', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
+    { key: 'clientes-naturales', label: 'Clientes Naturales', roles: ['SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
+    { key: 'clientes-juridicos', label: 'Clientes Jurídicos', roles: ['SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
+    { key: 'cuentas', label: 'Cuentas', roles: ['CAJERO', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
 
-    { divider: true, label: 'TRANSACCIONES', roles: ['OPERADOR', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
-    { key: 'transaccion-debito', label: 'Débito Manual', roles: ['OPERADOR', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
-    { key: 'transaccion-credito', label: 'Crédito Manual', roles: ['OPERADOR', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
-    { key: 'transaccion-transferencia', label: 'Transferencia', roles: ['OPERADOR', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
-    { key: 'transaccion-consulta', label: 'Consultar Transacción', roles: ['CAJERO', 'OPERADOR', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE', 'AUDITOR'] },
+    { divider: true, label: 'TRANSACCIONES', roles: ['SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
+    { key: 'transaccion-debito', label: 'Débito Manual', roles: ['SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
+    { key: 'transaccion-credito', label: 'Crédito Manual', roles: ['SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
+    { key: 'transaccion-transferencia', label: 'Transferencia', roles: ['SUPERVISOR_AGENCIA', 'ADMIN_CORE'] },
+    { key: 'transaccion-consulta', label: 'Consultar Transacción', roles: ['CAJERO', 'SUPERVISOR_AGENCIA', 'ADMIN_CORE', 'AUDITOR'] },
 
     { divider: true, label: 'CONTABILIDAD', roles: ['AUDITOR', 'ADMIN_CORE'] },
     { key: 'cuentas-institucionales', label: 'Cuentas Institucionales', roles: ['AUDITOR', 'ADMIN_CORE'] },
@@ -158,7 +158,7 @@ function AppContent() {
             return (
               <button
                 key={item.key}
-                onClick={() => navigate(item.key)}
+                onClick={() => item.key && navigate(item.key)}
                 className={`w-full text-left px-4 py-3 rounded-lg mb-1 transition-colors text-sm ${
                   currentScreen === item.key ? 'bg-[#C9A84C] text-[#0D1B4B] font-semibold' : 'hover:bg-white/10'
                 }`}

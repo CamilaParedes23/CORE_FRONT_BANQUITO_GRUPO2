@@ -112,7 +112,6 @@ Con `VITE_MOCK_AUTH_ENABLED=true` puedes usar los siguientes usuarios (contrase�
 | Usuario | Rol | Acceso |
 |---------|-----|--------|
 | `admin` | `ADMIN_CORE` | Panel completo: usuarios, sucursales, parámetros, feriados, clientes, cuentas, transacciones, auditoría |
-| `operador` | `OPERADOR` | Clientes, cuentas, transacciones (débito, crédito, transferencia, consulta) |
 | `cajero` | `CAJERO` | Cuentas, consulta de transacciones, búsqueda de clientes |
 | `supervisor` | `SUPERVISOR_AGENCIA` | Clientes, cuentas, transacciones |
 | `auditor` | `AUDITOR` | Cuentas institucionales, bitácora de auditoría, consulta de transacciones |
