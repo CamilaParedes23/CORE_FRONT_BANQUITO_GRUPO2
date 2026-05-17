@@ -123,7 +123,12 @@ Con `VITE_MOCK_AUTH_ENABLED=true` puedes usar los siguientes usuarios (contrase�
 
 ## 🧩 Módulos del Sistema
 
-### 👥 Módulo 5 — Clientes
+### � Dashboard Principal
+- Panel administrativo con métricas generales del sistema
+- Accesos rápidos a módulos según rol del usuario
+- Historial de actividad reciente
+
+### � Módulo 5 — Clientes
 - Listado con filtros (tipo, estado, pagos masivos), búsqueda y paginación
 - Registro de cliente **Persona Natural** (Cédula / Pasaporte con validación `XX1234567`)
 - Registro de cliente **Persona Jurídica** (RUC)
@@ -132,7 +137,7 @@ Con `VITE_MOCK_AUTH_ENABLED=true` puedes usar los siguientes usuarios (contrase�
 ### 🏦 Módulo 6 — Cuentas
 - Listado con buscador por número de cuenta, filtro de estado y paginación
 - Apertura de nueva cuenta
-- Ficha de cuenta: historial de movimientos, cambio de estado
+- Ficha de cuenta: información detallada, saldos (contable, disponible, bloqueado), historial de movimientos, cambio de estado con motivos predefinidos, gestión de bloqueos
 
 ### 💸 Módulo 8 — Transacciones
 - **Débito Manual**: retiro/débito entre cuentas activas
@@ -155,7 +160,10 @@ Con `VITE_MOCK_AUTH_ENABLED=true` puedes usar los siguientes usuarios (contrase�
 - Configuración de parámetros del sistema (IVA, hora de corte, etc.)
 
 ### 📊 Módulo 12 — Auditoría
-- Bitácora de eventos del sistema
+- Bitácora de eventos del sistema con paginación
+- Filtros por módulo y resultado
+- Ordenamiento cronológico descendente (más reciente primero)
+- Vista de roles para eventos de usuarios
 
 ---
 
