@@ -30,19 +30,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [token, setToken] = useState<string | null>(null);
 
   useEffect(() => {
-    const storedToken = localStorage.getItem('banquito_token');
-    const storedUser = localStorage.getItem('banquito_user');
-
-    if (storedToken && storedUser) {
-      try {
-        setToken(storedToken);
-        setUser(JSON.parse(storedUser));
-      } catch (e) {
-        console.error('Error parsing stored user:', e);
-        localStorage.removeItem('banquito_token');
-        localStorage.removeItem('banquito_user');
-      }
-    }
+    // Limpiar localStorage al inicio para forzar siempre el login
+    localStorage.removeItem('banquito_token');
+    localStorage.removeItem('banquito_user');
   }, []);
 
   const login = async (usuario: string, password: string) => {
