@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Search } from 'lucide-react';
-import { ClienteService } from '../../services/clienteService';
+import { ClienteService, getNombreCompleto } from '../../services/clienteService';
 import { CuentaService } from '../../services/cuentaService';
 import type { ClienteResponse } from '../../services/clienteService';
 import type { CuentaResponse } from '../../services/cuentaService';
@@ -115,7 +115,7 @@ export default function ClientesBusqueda({ navigate }: ClientesBusquedaProps) {
                 <p className="text-sm font-medium text-green-800 mb-3">Cliente encontrado:</p>
                 <div className="space-y-2 mb-4">
                   <p className="text-sm"><span className="font-medium">Tipo:</span> {resultado.tipoCliente}</p>
-                  <p className="text-sm"><span className="font-medium">Nombre:</span> {resultado.tipoCliente === 'NATURAL' ? `${resultado.nombres} ${resultado.apellidos}` : resultado.razonSocial}</p>
+                  <p className="text-sm"><span className="font-medium">Nombre:</span> {getNombreCompleto(resultado)}</p>
                   <p className="text-sm"><span className="font-medium">Identificación:</span> {resultado.identificacion}</p>
                   <p className="text-sm"><span className="font-medium">Estado:</span> {String(resultado.estado)}</p>
                   <p className="text-sm"><span className="font-medium">Email:</span> {resultado.email}</p>

@@ -1,17 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription } from '../ui/alert';
-import { TransaccionService, generarUuidTransaccion } from '../../services/transaccionService';
+import { TransaccionService, generarUuidTransaccion, type SubtipoTransaccionResponse } from '../../services/transaccionService';
+import { CuentaService } from '../../services/cuentaService';
+import { ClienteService } from '../../services/clienteService';
+import { validateCreditManualForm, type Customer, type Account } from '../../utils/validacionesTransacciones';
 
 interface TransaccionCreditoProps {
   navigate: (screen: string) => void;
-}
-
-function generarNumComprobante(uuid: string): string {
-  const raw = uuid?.replace(/-/g, '') ?? '';
-  return `CRE-${raw.slice(-8).toUpperCase()}`;
 }
 
 function formatFechaHora(d: Date): string {
@@ -33,6 +31,13 @@ export default function TransaccionCredito({ navigate }: TransaccionCreditoProps
   const [ejecutando, setEjecutando] = useState(false);
   const [errores, setErrores] = useState<Record<string, string>>({});
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
+  const [advertenciaInfo, setAdvertenciaInfo] = useState<string | null>(null);
+  const [errorCritico, setErrorCritico] = useState<string | null>(null);
+  const [cuentaDestino, setCuentaDestino] = useState<Account | null>(null);
+  const [clienteDestino, setClienteDestino] = useState<Customer | null>(null);
+  const [cargandoCuenta, setCargandoCuenta] = useState(false);
+  const [subtipos, setSubtipos] = useState<SubtipoTransaccionResponse[]>([]);
+  const [cargandoSubtipos, setCargandoSubtipos] = useState(false);
   const [comprobante, setComprobante] = useState<{
     numero: string;
     fechaHora: string;
@@ -43,6 +48,25 @@ export default function TransaccionCredito({ navigate }: TransaccionCreditoProps
     descripcion: string;
     uuid: string;
   } | null>(null);
+
+  // ── Cargar subtipos de transacción al montar el componente ─────────────────────
+  useEffect(() => {
+    const cargarSubtipos = async () => {
+      setCargandoSubtipos(true);
+      try {
+        const subtiposData = await TransaccionService.obtenerSubtiposPorTipo('CREDITO');
+        setSubtipos(subtiposData);
+        if (subtiposData.length > 0 && !formData.subtipo) {
+          setFormData(prev => ({ ...prev, subtipo: subtiposData[0].codigo }));
+        }
+      } catch (err) {
+        console.error('Error al cargar subtipos:', err);
+      } finally {
+        setCargandoSubtipos(false);
+      }
+    };
+    cargarSubtipos();
+  }, []);
 
   const validar = (): boolean => {
     const nuevos: Record<string, string> = {};
@@ -57,11 +81,75 @@ export default function TransaccionCredito({ navigate }: TransaccionCreditoProps
     return Object.keys(nuevos).length === 0;
   };
 
+  // ── Cargar información de cuenta y cliente destino ─────────────────────
+  useEffect(() => {
+    const cargarCuentaDestino = async () => {
+      if (!formData.cuentaDestino.trim()) {
+        setCuentaDestino(null);
+        setClienteDestino(null);
+        setAdvertenciaInfo(null);
+        setErrorCritico(null);
+        return;
+      }
+      setCargandoCuenta(true);
+      try {
+        const cuenta = await CuentaService.obtenerPorNumero(formData.cuentaDestino.trim());
+        const cuentaObj: Account = {
+          status: cuenta.estado as any,
+          available_balance: cuenta.saldoDisponible
+        };
+        setCuentaDestino(cuentaObj);
+        
+        const cliente = await ClienteService.obtenerPorId(cuenta.clienteId);
+        const clienteObj: Customer = {
+          status: cliente.estado as any
+        };
+        setClienteDestino(clienteObj);
+        
+        // Usar función pura de validación (aislada del canal de pagos masivos)
+        const validation = validateCreditManualForm(clienteObj, cuentaObj);
+        
+        if (!validation.isValid) {
+          // Error crítico: bloquea la operación
+          setErrorCritico(validation.message || 'Error de validación');
+          setAdvertenciaInfo(null);
+        } else if (validation.isWarning) {
+          // Advertencia informativa: permite continuar
+          setAdvertenciaInfo(validation.message);
+          setErrorCritico(null);
+        } else {
+          // Todo está bien
+          setAdvertenciaInfo(null);
+          setErrorCritico(null);
+        }
+      } catch (err) {
+        setCuentaDestino(null);
+        setClienteDestino(null);
+        setAdvertenciaInfo(null);
+        setErrorCritico(null);
+      } finally {
+        setCargandoCuenta(false);
+      }
+    };
+    cargarCuentaDestino();
+  }, [formData.cuentaDestino]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorGeneral(null);
     setComprobante(null);
     if (!validar()) return;
+
+    if (!cuentaDestino || !clienteDestino) {
+      setErrorGeneral('No se pudo cargar la información de la cuenta destino.');
+      return;
+    }
+
+    // Validación de bloqueo crítico (cliente suspendido/bloqueado o cuenta suspendida)
+    if (errorCritico) {
+      setErrorGeneral(errorCritico);
+      return;
+    }
 
     setEjecutando(true);
     const snapshotFormData = { ...formData };
@@ -77,7 +165,7 @@ export default function TransaccionCredito({ navigate }: TransaccionCreditoProps
 
       const uuid = String(resp.uuidCreditoCore);
       setComprobante({
-        numero: generarNumComprobante(uuid),
+        numero: resp.numeroComprobante,
         fechaHora: formatFechaHora(new Date()),
         cuentaAcreditada: snapshotFormData.cuentaDestino.trim(),
         monto: Number(snapshotFormData.monto),
@@ -177,6 +265,16 @@ export default function TransaccionCredito({ navigate }: TransaccionCreditoProps
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {errorCritico && (
+              <div className="mb-4 p-3 bg-red-50 border border-red-200 rounded-lg text-sm text-red-800">
+                ⚠️ {errorCritico}
+              </div>
+            )}
+            {advertenciaInfo && (
+              <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg text-sm text-orange-800">
+                ⚠️ {advertenciaInfo}
+              </div>
+            )}
             <div>
               <Label>Cuenta Origen *</Label>
               <Input
@@ -204,12 +302,20 @@ export default function TransaccionCredito({ navigate }: TransaccionCreditoProps
               <select
                 value={formData.subtipo}
                 onChange={(e) => { setFormData({ ...formData, subtipo: e.target.value }); setErrores((p) => ({ ...p, subtipo: '' })); }}
+                disabled={cargandoSubtipos}
                 className={`w-full mt-2 px-3 py-2 border rounded-lg ${errores.subtipo ? 'border-red-400' : ''}`}
               >
-                <option value="DEPOSITO_VENTANILLA">Depósito en Efectivo</option>
-                <option value="ABONO_NOMINA">Abono de Nómina</option>
-                <option value="TRANSFERENCIA_RECIBIDA">Transferencia Recibida</option>
-                <option value="INGRESO_SERVICIO_MASIVO">Ingreso Servicio Masivo</option>
+                {cargandoSubtipos ? (
+                  <option value="">Cargando subtipos...</option>
+                ) : subtipos.length === 0 ? (
+                  <option value="">No hay subtipos disponibles</option>
+                ) : (
+                  subtipos.map((subtipo) => (
+                    <option key={subtipo.id} value={subtipo.codigo}>
+                      {subtipo.nombre}
+                    </option>
+                  ))
+                )}
               </select>
               {errores.subtipo && <p className="text-xs text-red-600 mt-1">{errores.subtipo}</p>}
             </div>
@@ -221,6 +327,7 @@ export default function TransaccionCredito({ navigate }: TransaccionCreditoProps
                 value={formData.monto}
                 onChange={(e) => { setFormData({ ...formData, monto: e.target.value }); setErrores((p) => ({ ...p, monto: '' })); }}
                 placeholder="0.00"
+                disabled={!!errorCritico}
                 className={`mt-2 ${errores.monto ? 'border-red-400' : ''}`}
               />
               {errores.monto && <p className="text-xs text-red-600 mt-1">{errores.monto}</p>}
@@ -241,7 +348,7 @@ export default function TransaccionCredito({ navigate }: TransaccionCreditoProps
                 className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 disabled:opacity-50">
                 Cancelar
               </button>
-              <button type="submit" disabled={ejecutando}
+              <button type="submit" disabled={ejecutando || !!errorCritico}
                 className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:opacity-50">
                 {ejecutando ? 'Ejecutando...' : 'Ejecutar Crédito'}
               </button>

@@ -5,7 +5,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from '../ui/tabs';
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '../ui/dialog';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
-import { ClienteService } from '../../services/clienteService';
+import { ClienteService, getNombreCompleto } from '../../services/clienteService';
 import { CuentaService } from '../../services/cuentaService';
 import type { ClienteResponse } from '../../services/clienteService';
 import type { CuentaResponse } from '../../services/cuentaService';
@@ -207,7 +207,7 @@ export default function ClienteFicha({ navigate, clienteId }: ClienteFichaProps)
         <CardHeader>
           <div className="flex items-center justify-between">
             <div>
-              <CardTitle className="text-2xl text-[#0D1B4B]">{cliente.tipoCliente === 'NATURAL' ? `${cliente.nombres} ${cliente.apellidos}` : cliente.razonSocial}</CardTitle>
+              <CardTitle className="text-2xl text-[#0D1B4B]">{getNombreCompleto(cliente)}</CardTitle>
               <p className="text-gray-600 mt-1">
                 {cliente.tipoCliente === 'NATURAL' ? 'C.I' : 'RUC'}: {cliente.identificacion}
               </p>

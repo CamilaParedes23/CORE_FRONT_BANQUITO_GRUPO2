@@ -1,7 +1,7 @@
 /// <reference types="vite/client" />
 
 interface ImportMetaEnv {
-  /** URL base de la API del Core Bancario (ej: http://localhost:8080/api/v1/core) */
+  /** URL base de la API del Core Bancario (ej: http://localhost:8081/api/v1/core) */
   readonly VITE_API_BASE_URL: string;
 
   /** Nombre de la aplicación (ej: BanQuito) */

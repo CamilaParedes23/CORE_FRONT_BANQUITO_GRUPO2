@@ -1,17 +1,15 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/card';
 import { Input } from '../ui/input';
 import { Label } from '../ui/label';
 import { Alert, AlertDescription } from '../ui/alert';
 import { TransaccionService, generarUuidTransaccion } from '../../services/transaccionService';
+import { CuentaService } from '../../services/cuentaService';
+import { ClienteService } from '../../services/clienteService';
+import { validarTransferencia, debeBloquearFormularioTransferencia, debeDeshabilitarCampoMonto, obtenerMensajeAdvertencia, type Customer, type Account } from '../../utils/validacionesTransacciones';
 
 interface TransaccionTransferenciaProps {
   navigate: (screen: string) => void;
-}
-
-function generarNumComprobante(uuid: string): string {
-  const raw = uuid?.replace(/-/g, '') ?? '';
-  return `TRF-${raw.slice(-8).toUpperCase()}`;
 }
 
 function formatFechaHora(d: Date): string {
@@ -33,6 +31,11 @@ export default function TransaccionTransferencia({ navigate }: TransaccionTransf
   const [ejecutando, setEjecutando] = useState(false);
   const [errores, setErrores] = useState<Record<string, string>>({});
   const [errorGeneral, setErrorGeneral] = useState<string | null>(null);
+  const [cuentaOrigen, setCuentaOrigen] = useState<Account | null>(null);
+  const [clienteOrigen, setClienteOrigen] = useState<Customer | null>(null);
+  const [cuentaDestino, setCuentaDestino] = useState<Account | null>(null);
+  const [clienteDestino, setClienteDestino] = useState<Customer | null>(null);
+  const [cargandoCuentas, setCargandoCuentas] = useState(false);
   const [comprobante, setComprobante] = useState<{
     numero: string;
     fechaHora: string;
@@ -57,11 +60,89 @@ export default function TransaccionTransferencia({ navigate }: TransaccionTransf
     return Object.keys(nuevos).length === 0;
   };
 
+  // ── Cargar información de cuentas y clientes ─────────────────────────────
+  useEffect(() => {
+    const cargarCuentas = async () => {
+      if (!formData.cuentaOrigen.trim() || !formData.cuentaDestino.trim()) {
+        if (!formData.cuentaOrigen.trim()) {
+          setCuentaOrigen(null);
+          setClienteOrigen(null);
+        }
+        if (!formData.cuentaDestino.trim()) {
+          setCuentaDestino(null);
+          setClienteDestino(null);
+        }
+        return;
+      }
+      setCargandoCuentas(true);
+      try {
+        const [cuentaOrig, cuentaDest] = await Promise.all([
+          CuentaService.obtenerPorNumero(formData.cuentaOrigen.trim()).catch(() => null),
+          CuentaService.obtenerPorNumero(formData.cuentaDestino.trim()).catch(() => null)
+        ]);
+        
+        if (cuentaOrig) {
+          setCuentaOrigen({
+            status: cuentaOrig.estado as any,
+            available_balance: cuentaOrig.saldoDisponible
+          });
+          const clienteOrig = await ClienteService.obtenerPorId(cuentaOrig.clienteId);
+          setClienteOrigen({
+            status: clienteOrig.estado as any
+          });
+        } else {
+          setCuentaOrigen(null);
+          setClienteOrigen(null);
+        }
+        
+        if (cuentaDest) {
+          setCuentaDestino({
+            status: cuentaDest.estado as any,
+            available_balance: cuentaDest.saldoDisponible
+          });
+          const clienteDest = await ClienteService.obtenerPorId(cuentaDest.clienteId);
+          setClienteDestino({
+            status: clienteDest.estado as any
+          });
+        } else {
+          setCuentaDestino(null);
+          setClienteDestino(null);
+        }
+      } catch (err) {
+        setCuentaOrigen(null);
+        setClienteOrigen(null);
+        setCuentaDestino(null);
+        setClienteDestino(null);
+      } finally {
+        setCargandoCuentas(false);
+      }
+    };
+    cargarCuentas();
+  }, [formData.cuentaOrigen, formData.cuentaDestino]);
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrorGeneral(null);
     setComprobante(null);
     if (!validar()) return;
+
+    if (!cuentaOrigen || !clienteOrigen || !cuentaDestino || !clienteDestino) {
+      setErrorGeneral('No se pudo cargar la información de las cuentas.');
+      return;
+    }
+
+    // Validar usando las funciones de validación
+    const validation = validarTransferencia(
+      clienteOrigen,
+      cuentaOrigen,
+      clienteDestino,
+      cuentaDestino,
+      Number(formData.monto)
+    );
+    if (!validation.isValid) {
+      setErrorGeneral(validation.errorMessage);
+      return;
+    }
 
     setEjecutando(true);
     const snap = { ...formData };
@@ -77,7 +158,7 @@ export default function TransaccionTransferencia({ navigate }: TransaccionTransf
 
       const uuid = String(resp.uuidGrupoOperacion);
       setComprobante({
-        numero: generarNumComprobante(uuid),
+        numero: resp.numeroComprobante,
         fechaHora: formatFechaHora(new Date()),
         cuentaOrigen: snap.cuentaOrigen.trim(),
         cuentaDestino: snap.cuentaDestino.trim(),
@@ -177,6 +258,16 @@ export default function TransaccionTransferencia({ navigate }: TransaccionTransf
           )}
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            {cuentaOrigen && clienteOrigen && obtenerMensajeAdvertencia(clienteOrigen, cuentaOrigen, true) && (
+              <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg text-sm text-orange-800">
+                ⚠️ Cuenta Origen: {obtenerMensajeAdvertencia(clienteOrigen, cuentaOrigen, true)}
+              </div>
+            )}
+            {cuentaDestino && clienteDestino && obtenerMensajeAdvertencia(clienteDestino, cuentaDestino, false) && (
+              <div className="mb-4 p-3 bg-orange-50 border border-orange-200 rounded-lg text-sm text-orange-800">
+                ⚠️ Cuenta Destino: {obtenerMensajeAdvertencia(clienteDestino, cuentaDestino, false)}
+              </div>
+            )}
             <div className="grid grid-cols-2 gap-4">
               <div>
                 <Label>Cuenta Origen *</Label>
@@ -207,6 +298,7 @@ export default function TransaccionTransferencia({ navigate }: TransaccionTransf
                 value={formData.monto}
                 onChange={(e) => { setFormData({ ...formData, monto: e.target.value }); setErrores((p) => ({ ...p, monto: '' })); }}
                 placeholder="0.00"
+                disabled={debeDeshabilitarCampoMonto(clienteOrigen || { status: 'ACTIVO' }, cuentaOrigen || { status: 'ACTIVA', available_balance: 0 }, true)}
                 className={`mt-2 ${errores.monto ? 'border-red-400' : ''}`}
               />
               {errores.monto && <p className="text-xs text-red-600 mt-1">{errores.monto}</p>}
@@ -240,7 +332,7 @@ export default function TransaccionTransferencia({ navigate }: TransaccionTransf
                 className="px-6 py-2 bg-gray-300 text-gray-700 rounded-lg hover:bg-gray-400 disabled:opacity-50">
                 Cancelar
               </button>
-              <button type="submit" disabled={ejecutando}
+              <button type="submit" disabled={ejecutando || debeBloquearFormularioTransferencia(clienteOrigen || { status: 'ACTIVO' }, cuentaOrigen || { status: 'ACTIVA', available_balance: 0 }, clienteDestino || { status: 'ACTIVO' }, cuentaDestino || { status: 'ACTIVA', available_balance: 0 })}
                 className="px-6 py-2 bg-[#0D1B4B] text-white rounded-lg hover:bg-[#1a2d6b] disabled:opacity-50">
                 {ejecutando ? 'Ejecutando...' : 'Ejecutar Transferencia'}
               </button>

@@ -14,18 +14,24 @@ interface TransaccionConsultaProps {
 export default function TransaccionConsulta({ navigate }: TransaccionConsultaProps) {
   const [uuid, setUuid] = useState('');
   const [buscando, setBuscando] = useState(false);
-  const [resultado, setResultado] = useState<MovimientoCuentaResponse | null>(null);
+  const [resultados, setResultados] = useState<MovimientoCuentaResponse[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   const handleBuscar = async () => {
     if (!uuid.trim()) return;
     setBuscando(true);
     setError(null);
-    setResultado(null);
+    setResultados([]);
 
     try {
       const txn = await TransaccionService.consultarPorUuid(uuid.trim());
-      setResultado(txn);
+      
+      // Validar que la respuesta sea un arreglo con elementos
+      if (Array.isArray(txn) && txn.length > 0) {
+        setResultados(txn);
+      } else {
+        setError('No se encontró una transacción con ese número de comprobante.');
+      }
     } catch (err: any) {
       if (err?.status === 404) {
         setError('No se encontró una transacción con ese número de comprobante.');
@@ -60,7 +66,7 @@ export default function TransaccionConsulta({ navigate }: TransaccionConsultaPro
                 onChange={(e) => {
                   setUuid(e.target.value);
                   setError(null);
-                  setResultado(null);
+                  setResultados([]);
                 }}
                 placeholder="Ej: TRF-A7F2C9E1"
                 className="mt-2 font-mono text-sm"
@@ -82,49 +88,97 @@ export default function TransaccionConsulta({ navigate }: TransaccionConsultaPro
               {buscando ? 'Buscando...' : 'Buscar Transacción'}
             </button>
 
-            {resultado && (
+            {resultados.length > 0 && (
               <Card className="mt-6 bg-gray-50">
                 <CardHeader>
                   <div className="flex items-center justify-between">
-                    <CardTitle className="text-lg text-[#0D1B4B]">Transacción Encontrada</CardTitle>
+                    <CardTitle className="text-lg text-[#0D1B4B]">
+                      {resultados.length > 1 ? 'Transferencia Encontrada' : 'Transacción Encontrada'}
+                    </CardTitle>
                     <Badge
-                      className={resultado.tipoMovimiento === 'DEBITO'
+                      className={resultados[0].tipoMovimiento === 'DEBITO'
                         ? 'bg-red-600'
                         : 'bg-green-600'}
                     >
-                      {resultado.tipoMovimiento}
+                      {resultados.length > 1 ? 'TRANSFERENCIA' : resultados[0].tipoMovimiento}
                     </Badge>
                   </div>
                 </CardHeader>
                 <CardContent>
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <p className="text-sm text-gray-600 mb-1">UUID Transacción</p>
-                      <p className="font-mono text-xs break-all">{resultado.uuidTransaccion}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Tipo Movimiento</p>
-                      <p className={`font-medium ${resultado.tipoMovimiento === 'DEBITO' ? 'text-red-600' : 'text-green-600'}`}>
-                        {resultado.tipoMovimiento}
-                      </p>
-                    </div>
-                    <div>
                       <p className="text-sm text-gray-600 mb-1">Monto</p>
-                      <p className="font-medium text-xl">${Number(resultado.monto).toFixed(2)}</p>
-                    </div>
-                    <div>
-                      <p className="text-sm text-gray-600 mb-1">Saldo Resultante</p>
-                      <p className="font-medium">${Number(resultado.saldoResultante).toFixed(2)}</p>
+                      <p className="font-medium text-xl">${Number(resultados[0].monto || 0).toFixed(2)}</p>
                     </div>
                     <div>
                       <p className="text-sm text-gray-600 mb-1">Fecha</p>
-                      <p className="font-medium">{resultado.fechaTransaccion}</p>
+                      <p className="font-medium">{resultados[0].fechaTransaccion || '—'}</p>
                     </div>
                     <div className="col-span-2">
                       <p className="text-sm text-gray-600 mb-1">Descripción</p>
-                      <p className="font-medium">{resultado.descripcion || '—'}</p>
+                      <p className="font-medium">{resultados[0].descripcion || '—'}</p>
                     </div>
                   </div>
+
+                  {resultados.length > 1 && (
+                    <div className="mt-6 pt-6 border-t border-gray-200">
+                      <p className="text-sm font-semibold text-gray-700 mb-4">Detalle de Movimientos</p>
+                      <div className="space-y-4">
+                        {resultados.map((movimiento, index) => (
+                          <div key={movimiento.uuidTransaccion} className="bg-white p-4 rounded-lg border">
+                            <div className="flex items-center justify-between mb-3">
+                              <Badge
+                                className={movimiento.tipoMovimiento === 'DEBITO'
+                                  ? 'bg-red-600'
+                                  : 'bg-green-600'}
+                              >
+                                {movimiento.tipoMovimiento}
+                              </Badge>
+                              <div className="text-right">
+                                <span className="text-xs text-gray-500 block">
+                                  {movimiento.tipoMovimiento === 'DEBITO' ? 'Cuenta Origen' : 'Cuenta Destino'}
+                                </span>
+                                {movimiento.numeroCuenta && (
+                                  <span className="text-sm font-mono text-gray-700">
+                                    {movimiento.numeroCuenta}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+                            <div className="grid grid-cols-2 gap-3 text-sm">
+                              <div>
+                                <p className="text-gray-600 mb-1">UUID</p>
+                                <p className="font-mono text-xs break-all">{movimiento.uuidTransaccion}</p>
+                              </div>
+                              <div>
+                                <p className="text-gray-600 mb-1">Saldo Resultante</p>
+                                <p className="font-medium">${Number(movimiento.saldoResultante || 0).toFixed(2)}</p>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+
+                  {resultados.length === 1 && (
+                    <div className="mt-4 pt-4 border-t border-gray-200">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <p className="text-sm text-gray-600 mb-1">UUID Transacción</p>
+                          <p className="font-mono text-xs break-all">{resultados[0].uuidTransaccion}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600 mb-1">Cuenta</p>
+                          <p className="font-mono text-xs">{resultados[0].numeroCuenta || '—'}</p>
+                        </div>
+                        <div>
+                          <p className="text-sm text-gray-600 mb-1">Saldo Resultante</p>
+                          <p className="font-medium">${Number(resultados[0].saldoResultante || 0).toFixed(2)}</p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
                 </CardContent>
               </Card>
             )}
