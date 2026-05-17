@@ -27,6 +27,7 @@ export interface ClienteResponse {
   nombres?: string;
   apellidos?: string;
   razonSocial?: string;
+  nombreVisual?: string;
   fechaNacimiento?: string;
   fechaConstitucion?: string;
   representanteLegalId?: number;
@@ -47,6 +48,9 @@ export type ClienteNatural = ClienteRequest;
 export type ClienteJuridico = ClienteRequest;
 
 export function getNombreCompleto(cliente: ClienteResponse): string {
+  if (cliente.nombreVisual) {
+    return cliente.nombreVisual;
+  }
   if (cliente.tipoCliente === 'NATURAL') {
     return `${cliente.nombres || ''} ${cliente.apellidos || ''}`.trim();
   }

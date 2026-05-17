@@ -16,6 +16,7 @@ export interface TransferenciaResponse {
   uuidCreditoCore: string;
   uuidGrupoOperacion: string;
   saldoDisponibleOrigen: number;
+  numeroComprobante: string;
 }
 
 export interface MovimientoCuentaResponse {
@@ -26,6 +27,8 @@ export interface MovimientoCuentaResponse {
   saldoResultante: number;
   descripcion: string;
   fechaTransaccion: string;
+  numeroComprobante?: string;
+  numeroCuenta?: string;
 }
 
 export interface TransaccionData {
@@ -35,6 +38,12 @@ export interface TransaccionData {
   cuentaId: string;
   subtipoTransaccion?: string;
   descripcion?: string;
+}
+
+export interface SubtipoTransaccionResponse {
+  id: number;
+  codigo: string;
+  nombre: string;
 }
 
 export interface TransaccionResponse {
@@ -63,10 +72,13 @@ export const TransaccionService = {
     }),
 
   consultarPorUuid: (uuid: string) =>
-    get<MovimientoCuentaResponse>(`/transacciones/${uuid}`),
+    get<MovimientoCuentaResponse[]>(`/transacciones/${uuid}`),
 
   obtenerMovimientosPorCuenta: (numeroCuenta: string) =>
     get<MovimientoCuentaResponse[]>(`/transacciones/cuenta/${numeroCuenta}`),
+
+  obtenerSubtiposPorTipo: (tipo: 'CREDITO' | 'DEBITO') =>
+    get<SubtipoTransaccionResponse[]>(`/subtipos-transaccion?tipo=${tipo}`),
 
   procesar: (data: TransaccionData) => {
     const request: TransferenciaRequest = {

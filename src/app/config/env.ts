@@ -4,7 +4,7 @@
 
 export const config = {
   // --- API ---
-  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://34.27.240.236:8081/api/v1/core',
+  apiBaseUrl: import.meta.env.VITE_API_BASE_URL || 'http://localhost:8081/api/v1/core',
 
   // --- Aplicación ---
   appName: import.meta.env.VITE_APP_NAME || 'BanQuito',
