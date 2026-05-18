@@ -11,7 +11,7 @@ export const config = {
   appSubtitle: import.meta.env.VITE_APP_SUBTITLE || 'Core Bancario',
 
   // --- Autenticación ---
-  mockAuthEnabled: import.meta.env.VITE_MOCK_AUTH_ENABLED === 'true',
+  mockAuthEnabled: import.meta.env.VITE_MOCK_AUTH_ENABLED === 'false',
   defaultAdminUser: import.meta.env.VITE_DEFAULT_ADMIN_USER || 'admin',
 
   // --- Entorno ---
