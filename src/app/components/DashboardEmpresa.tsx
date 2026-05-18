@@ -47,10 +47,7 @@ export default function DashboardEmpresa({ navigate }: DashboardEmpresaProps) {
   const elementosPorPaginaMovimientos = 10;
 
   useEffect(() => {
-    console.log('[DashboardEmpresa] User:', user);
-
     if (!user?.clienteId && !user?.identificacion) {
-      console.log('[DashboardEmpresa] No clientId ni identificacion en user');
       setLoadingCliente(false);
       setErrorCliente('No se encontró información del cliente');
       return;
@@ -58,7 +55,6 @@ export default function DashboardEmpresa({ navigate }: DashboardEmpresaProps) {
 
     const fetchCliente = async () => {
       try {
-        console.log('[DashboardEmpresa] Buscando cliente con clientId:', user.clienteId, 'o identificacion:', user.identificacion);
         let clienteData: ClienteResponse | null = null;
 
         if (user.clienteId) {
@@ -67,10 +63,8 @@ export default function DashboardEmpresa({ navigate }: DashboardEmpresaProps) {
           clienteData = await ClienteService.obtenerPorIdentificacion(user.identificacion);
         }
 
-        console.log('[DashboardEmpresa] Cliente obtenido:', clienteData);
         setCliente(clienteData);
       } catch (err: unknown) {
-        console.error('[DashboardEmpresa] Error al cargar cliente:', err);
         setErrorCliente(err instanceof Error ? err.message : 'Error al cargar información del cliente');
       } finally {
         setLoadingCliente(false);
@@ -89,47 +83,32 @@ export default function DashboardEmpresa({ navigate }: DashboardEmpresaProps) {
   }, []);
 
   useEffect(() => {
-    console.log('[DashboardEmpresa] Cliente:', cliente);
-
     if (!cliente) {
-      console.log('[DashboardEmpresa] No cliente disponible');
       setLoadingCuentas(false);
       return;
     }
-
-    console.log('[DashboardEmpresa] Cargando todas las cuentas...');
     CuentaService.listar()
       .then((todasLasCuentas) => {
-        console.log('[DashboardEmpresa] Total cuentas en sistema:', todasLasCuentas.length);
         const cuentasFiltradas = todasLasCuentas.filter(
           (cuenta) => cuenta.clienteId === cliente.id
         );
-        console.log('[DashboardEmpresa] Cuentas filtradas para cliente ID', cliente.id, ':', cuentasFiltradas.length);
-        console.log('[DashboardEmpresa] Cuentas filtradas:', cuentasFiltradas);
         setCuentas(cuentasFiltradas);
       })
       .catch((err: unknown) => {
-        console.error('[DashboardEmpresa] Error al cargar cuentas:', err);
         setErrorCuentas(err instanceof Error ? err.message : 'Error al cargar cuentas');
       })
       .finally(() => setLoadingCuentas(false));
   }, [cliente]);
 
   useEffect(() => {
-    console.log('[DashboardEmpresa] Cuentas:', cuentas);
-
     if (cuentas.length === 0) {
-      console.log('[DashboardEmpresa] No cuentas disponibles para cargar movimientos');
       return;
     }
 
     setLoadingMovimientos(true);
     setErrorMovimientos(null);
-
-    console.log('[DashboardEmpresa] Cargando movimientos para', cuentas.length, 'cuentas');
     Promise.all(cuentas.map((c) => CuentaService.obtenerMovimientos(c.numeroCuenta)))
       .then((resultados) => {
-        console.log('[DashboardEmpresa] Resultados de movimientos:', resultados);
         const movimientosOrdenados = resultados
           .flat()
           .sort(
@@ -137,11 +116,9 @@ export default function DashboardEmpresa({ navigate }: DashboardEmpresaProps) {
               new Date(b.fechaTransaccion).getTime() -
               new Date(a.fechaTransaccion).getTime()
           );
-        console.log('[DashboardEmpresa] Movimientos ordenados:', movimientosOrdenados);
         setMovimientos(movimientosOrdenados);
       })
       .catch((err: unknown) => {
-        console.error('[DashboardEmpresa] Error al cargar movimientos:', err);
         setErrorMovimientos(err instanceof Error ? err.message : 'Error al cargar movimientos');
       })
       .finally(() => setLoadingMovimientos(false));

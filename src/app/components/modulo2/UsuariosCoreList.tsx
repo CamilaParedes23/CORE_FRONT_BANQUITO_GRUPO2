@@ -44,7 +44,6 @@ export default function UsuariosCoreList({ navigate }: UsuariosCoreListProps) {
         const data = await SucursalService.listarActivas();
         setSucursales(data);
       } catch (err) {
-        console.error('Error al cargar sucursales:', err);
       } finally {
         setCargandoSucursales(false);
       }

@@ -32,13 +32,7 @@ function AppContent() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
   useEffect(() => {
-    console.log('[App] isAuthenticated:', isAuthenticated);
-    console.log('[App] hasRole EMPRESA:', hasRole(['EMPRESA']));
-    console.log('[App] currentScreen:', currentScreen);
-    console.log('[App] user:', user);
-
     if (isAuthenticated && hasRole(['EMPRESA']) && currentScreen !== 'empresa-dashboard') {
-      console.log('[App] Redirigiendo a empresa-dashboard');
       setCurrentScreen('empresa-dashboard');
     }
   }, [isAuthenticated, hasRole, currentScreen, user]);
@@ -59,7 +53,6 @@ function AppContent() {
   }
 
   if (hasRole(['EMPRESA'])) {
-    console.log('[App] Renderizando DashboardEmpresa para usuario empresa');
     return (
       <div className="size-full flex bg-gray-50">
         <aside className="w-64 bg-[#0D1B4B] text-white flex flex-col flex-shrink-0" style={{ minHeight: '100vh' }}>

@@ -58,7 +58,6 @@ export default function TransaccionCredito({ navigate }: TransaccionCreditoProps
           setFormData(prev => ({ ...prev, subtipo: subtiposData[0].codigo }));
         }
       } catch (err) {
-        console.error('Error al cargar subtipos:', err);
       } finally {
         setCargandoSubtipos(false);
       }

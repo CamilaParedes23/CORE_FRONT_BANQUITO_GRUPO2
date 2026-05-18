@@ -65,7 +65,6 @@ export default function ParametrosList({ navigate }: ParametrosListProps) {
       setEditValue('');
       setError(null);
     } catch (err: any) {
-      console.error('Error al actualizar parámetro:', err);
       alert(`Error al actualizar parámetro: ${err.message || 'Error desconocido'}`);
     } finally {
       setSubmitting(false);
@@ -92,7 +91,6 @@ export default function ParametrosList({ navigate }: ParametrosListProps) {
       });
       setError(null);
     } catch (err: any) {
-      console.error('Error al crear parámetro:', err);
       alert(`Error al crear parámetro: ${err.message || 'Error desconocido'}`);
     } finally {
       setSubmitting(false);

@@ -47,7 +47,6 @@ export default function SucursalesList({ navigate }: SucursalesListProps) {
         setSucursales(data);
         setError(null);
       } catch (err) {
-        console.warn('Backend no disponible, usando datos de respaldo:', err);
         setSucursales(SUCURSALES_FALLBACK);
         setError('No se pudo conectar al servidor. Mostrando datos de respaldo.');
       } finally {
@@ -70,7 +69,6 @@ export default function SucursalesList({ navigate }: SucursalesListProps) {
       setFormData({ codigoSucursal: '', nombre: '', ciudad: '', direccion: '' });
       setError(null);
     } catch (err: any) {
-      console.error('Error al crear sucursal:', err);
       alert(`Error al crear sucursal: ${err.message || 'Error desconocido'}`);
     } finally {
       setSubmitting(false);
@@ -101,7 +99,6 @@ export default function SucursalesList({ navigate }: SucursalesListProps) {
       setFormData({ codigoSucursal: '', nombre: '', ciudad: '', direccion: '' });
       setError(null);
     } catch (err: any) {
-      console.error('Error al actualizar sucursal:', err);
       alert(`Error al actualizar sucursal: ${err.message || 'Error desconocido'}`);
     } finally {
       setSubmitting(false);
@@ -131,7 +128,6 @@ export default function SucursalesList({ navigate }: SucursalesListProps) {
       setSucursalToToggle(null);
       setError(null);
     } catch (err: any) {
-      console.error('Error al cambiar estado de sucursal:', err);
       alert(`Error al cambiar estado: ${err.message || 'Error desconocido'}`);
     } finally {
       setSubmitting(false);

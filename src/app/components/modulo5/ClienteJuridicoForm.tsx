@@ -86,7 +86,6 @@ export default function ClienteJuridicoForm({ navigate }: ClienteJuridicoFormPro
       );
       setResultadosBusqueda(clientesNaturales);
     } catch (err) {
-      console.error('Error al buscar representante legal:', err);
     } finally {
       setBuscandoRepresentante(false);
     }
