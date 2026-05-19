@@ -133,11 +133,11 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
     const snapshotFormData = { ...formData };
     try {
       const resp = await TransaccionService.transferir({
-        uuidOperacion: generarUuidTransaccion() as any,
         cuentaOrigen: formData.cuentaOrigen.trim(),
         cuentaDestino: formData.cuentaDestino.trim(),
-        monto: Number(formData.monto) as any,
         codigoSubtipo: formData.subtipo,
+        monto: Number(formData.monto),
+        uuidOperacion: generarUuidTransaccion(),
         descripcion: formData.descripcion.trim() || undefined,
       });
 
@@ -156,7 +156,7 @@ export default function TransaccionDebito({ navigate }: TransaccionDebitoProps) 
         nombreBeneficiario: 'Cliente Beneficiario',
       });
 
-      setFormData({ cuentaOrigen: '', cuentaDestino: '', subtipo: 'RETIRO_CAJERO', monto: '', descripcion: '' });
+      setFormData({ cuentaOrigen: '', cuentaDestino: '', subtipo: 'RET_EFECTIVO', monto: '', descripcion: '' });
     } catch (err: any) {
       setErrorGeneral(
         err?.statusText || err?.message || 'No se pudo ejecutar el débito. Verifique las cuentas y el saldo disponible.'

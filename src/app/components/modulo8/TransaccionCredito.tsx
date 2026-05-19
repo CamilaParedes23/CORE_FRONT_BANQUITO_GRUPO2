@@ -144,11 +144,11 @@ export default function TransaccionCredito({ navigate }: TransaccionCreditoProps
     const snapshotFormData = { ...formData };
     try {
       const resp = await TransaccionService.transferir({
-        uuidOperacion: generarUuidTransaccion() as any,
         cuentaOrigen: formData.cuentaOrigen.trim(),
         cuentaDestino: formData.cuentaDestino.trim(),
-        monto: Number(formData.monto) as any,
         codigoSubtipo: formData.subtipo,
+        monto: Number(formData.monto),
+        uuidOperacion: generarUuidTransaccion(),
         descripcion: formData.descripcion.trim() || undefined,
       });
 
@@ -164,7 +164,7 @@ export default function TransaccionCredito({ navigate }: TransaccionCreditoProps
         uuid,
       });
 
-      setFormData({ cuentaOrigen: '', cuentaDestino: '', subtipo: 'DEPOSITO_VENTANILLA', monto: '', descripcion: '' });
+      setFormData({ cuentaOrigen: '', cuentaDestino: '', subtipo: 'DEP_EFECTIVO', monto: '', descripcion: '' });
     } catch (err: any) {
       setErrorGeneral(
         err?.statusText || err?.message || 'No se pudo ejecutar el crédito. Verifique las cuentas e intente de nuevo.'

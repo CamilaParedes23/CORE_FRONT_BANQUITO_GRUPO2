@@ -146,11 +146,11 @@ export default function TransaccionTransferencia({ navigate }: TransaccionTransf
     const snap = { ...formData };
     try {
       const resp = await TransaccionService.transferir({
-        uuidOperacion: generarUuidTransaccion() as any,
         cuentaOrigen: formData.cuentaOrigen.trim(),
         cuentaDestino: formData.cuentaDestino.trim(),
-        monto: Number(formData.monto) as any,
         codigoSubtipo: formData.subtipo,
+        monto: Number(formData.monto),
+        uuidOperacion: generarUuidTransaccion(),
         descripcion: formData.descripcion.trim() || undefined,
       });
 

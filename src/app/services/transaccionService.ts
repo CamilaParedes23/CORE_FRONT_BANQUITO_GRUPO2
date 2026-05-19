@@ -1,13 +1,17 @@
 import { get, post } from './apiClient';
 export interface TransferenciaRequest {
-  uuidOperacion: string;
-  uuidGrupoOperacion?: string;
   cuentaOrigen: string;
   cuentaDestino: string;
-  monto: number;
   codigoSubtipo: string;
+  monto: number;
+  uuidOperacion: string;
+  uuidGrupoOperacion?: string;
   referenciaExterna?: string;
   descripcion?: string;
+  canalOrigen?: string;
+  fechaNegocio?: string;
+  usuarioCoreId?: number;
+  credencialWebId?: number;
 }
 
 export interface TransferenciaResponse {
@@ -58,7 +62,15 @@ export interface TransaccionResponse {
 }
 
 export function generarUuidTransaccion(): string {
-  return `${crypto.randomUUID ? crypto.randomUUID() : `TXN-${Date.now()}-${Math.random().toString(36).substring(2, 9)}`}`;
+  if (crypto.randomUUID) {
+    return crypto.randomUUID();
+  }
+  // Fallback: generar un UUID v4 compatible
+  return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function(c) {
+    const r = Math.random() * 16 | 0;
+    const v = c === 'x' ? r : (r & 0x3 | 0x8);
+    return v.toString(16);
+  });
 }
 
 export function generarIdempotencyKey(): string {
